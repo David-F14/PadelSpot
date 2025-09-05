@@ -11,7 +11,8 @@
       "Bash(wget:*)",
       "Bash(powershell:*)",
       "Bash(pkill:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
