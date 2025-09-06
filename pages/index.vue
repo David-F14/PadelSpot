@@ -1,64 +1,217 @@
 <template>
   <div class="min-h-screen bg-background">
-    <div class="container mx-auto px-4 py-8">
-      <div class="text-center space-y-6">
-        <h1 class="text-4xl font-bold text-foreground">
-          PadelSpot
-        </h1>
-        
-        <p class="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Réservez vos créneaux de padel en quelques clics. 
-          Trouvez les meilleurs centres près de chez vous.
-        </p>
-
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-          <NuxtLink
-            to="/centers"
-            class="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
-          >
-            Voir les centres
-          </NuxtLink>
+    <!-- Navigation Header -->
+    <header class="border-b border-border">
+      <div class="container mx-auto px-4 py-4">
+        <nav class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
+              <span class="text-primary-foreground font-bold text-lg">P</span>
+            </div>
+            <h1 class="text-xl font-bold text-foreground">PadelSpot</h1>
+          </div>
           
-          <NuxtLink
-            to="/auth/login"
-            class="inline-flex items-center justify-center rounded-md border border-input bg-background px-8 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
-          >
-            Se connecter
-          </NuxtLink>
+          <div class="flex items-center space-x-4">
+            <UiButton variant="outline" @click="navigateTo('/auth/login')">
+              Connexion
+            </UiButton>
+            <UiButton @click="navigateTo('/auth/login')">
+              S'inscrire
+            </UiButton>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-16">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-4xl md:text-6xl font-bold text-foreground mb-6">
+          Réservez votre terrain de <span class="text-primary">padel</span> en 2 clics
+        </h2>
+        <p class="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          Trouvez et réservez facilement les meilleurs terrains de padel près de chez vous. 
+          Simple, rapide et sécurisé.
+        </p>
+        
+        <!-- Search Bar -->
+        <div class="max-w-md mx-auto mb-8">
+          <div class="relative">
+            <UiInput 
+              v-model="searchLocation" 
+              placeholder="Où voulez-vous jouer ?"
+              class="pl-12 h-12 text-lg"
+            />
+            <div class="absolute left-3 top-1/2 transform -translate-y-1/2">
+              <MapPin class="h-5 w-5 text-muted-foreground" />
+            </div>
+          </div>
+          <UiButton class="w-full mt-4 h-12 text-lg" @click="searchCenters">
+            <Search class="mr-2 h-5 w-5" />
+            Rechercher
+          </UiButton>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 text-left">
-          <div class="p-6 border rounded-lg bg-card">
-            <h3 class="text-lg font-semibold mb-2">Recherche simple</h3>
-            <p class="text-muted-foreground">
-              Trouvez les centres de padel les plus proches de vous grâce à la géolocalisation.
-            </p>
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-3 gap-4 max-w-md mx-auto text-center">
+          <div>
+            <div class="text-2xl font-bold text-primary">50+</div>
+            <div class="text-sm text-muted-foreground">Centres</div>
           </div>
-          
-          <div class="p-6 border rounded-lg bg-card">
-            <h3 class="text-lg font-semibold mb-2">Réservation rapide</h3>
-            <p class="text-muted-foreground">
-              Réservez votre terrain en moins de 3 clics avec notre interface intuitive.
-            </p>
+          <div>
+            <div class="text-2xl font-bold text-primary">200+</div>
+            <div class="text-sm text-muted-foreground">Terrains</div>
           </div>
-          
-          <div class="p-6 border rounded-lg bg-card">
-            <h3 class="text-lg font-semibold mb-2">Paiement sécurisé</h3>
-            <p class="text-muted-foreground">
-              Payez en toute sécurité avec notre intégration Stripe complète.
-            </p>
+          <div>
+            <div class="text-2xl font-bold text-primary">1K+</div>
+            <div class="text-sm text-muted-foreground">Réservations</div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 bg-muted/50">
+      <div class="container mx-auto px-4">
+        <h3 class="text-3xl font-bold text-center mb-12 text-foreground">
+          Pourquoi choisir PadelSpot ?
+        </h3>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+          <UiCard class="text-center p-6">
+            <div class="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Clock class="h-6 w-6 text-primary" />
+            </div>
+            <h4 class="text-xl font-semibold mb-2">Réservation rapide</h4>
+            <p class="text-muted-foreground">
+              Réservez en moins de 2 minutes avec notre interface intuitive
+            </p>
+          </UiCard>
+
+          <UiCard class="text-center p-6">
+            <div class="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <MapPin class="h-6 w-6 text-primary" />
+            </div>
+            <h4 class="text-xl font-semibold mb-2">Géolocalisation</h4>
+            <p class="text-muted-foreground">
+              Trouvez les terrains les plus proches de votre position
+            </p>
+          </UiCard>
+
+          <UiCard class="text-center p-6">
+            <div class="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <CreditCard class="h-6 w-6 text-primary" />
+            </div>
+            <h4 class="text-xl font-semibold mb-2">Paiement sécurisé</h4>
+            <p class="text-muted-foreground">
+              Transactions 100% sécurisées avec Stripe
+            </p>
+          </UiCard>
+        </div>
+      </div>
+    </section>
+
+    <!-- Popular Centers Section -->
+    <section class="py-16">
+      <div class="container mx-auto px-4">
+        <h3 class="text-3xl font-bold text-center mb-12 text-foreground">
+          Centres populaires
+        </h3>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+          <UiCard v-for="center in popularCenters" :key="center.id" class="overflow-hidden">
+            <div class="h-48 bg-muted relative">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div class="absolute bottom-4 left-4 text-white">
+                <h4 class="text-lg font-semibold">{{ center.name }}</h4>
+                <p class="text-sm opacity-90">{{ center.location }}</p>
+              </div>
+            </div>
+            <UiCardContent>
+              <div class="flex justify-between items-center mt-4">
+                <div class="flex items-center space-x-1">
+                  <Star class="h-4 w-4 text-yellow-400 fill-current" />
+                  <span class="text-sm font-medium">{{ center.rating }}</span>
+                  <span class="text-sm text-muted-foreground">({{ center.reviews }})</span>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm text-muted-foreground">À partir de</div>
+                  <div class="text-lg font-bold text-primary">{{ center.price }}€/h</div>
+                </div>
+              </div>
+            </UiCardContent>
+          </UiCard>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-border py-8">
+      <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="h-6 w-6 bg-primary rounded flex items-center justify-center">
+              <span class="text-primary-foreground font-bold text-sm">P</span>
+            </div>
+            <span class="font-medium">PadelSpot</span>
+          </div>
+          <p class="text-sm text-muted-foreground">
+            © 2024 PadelSpot. Tous droits réservés.
+          </p>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { MapPin, Search, Clock, CreditCard, Star } from 'lucide-vue-next'
+
+// SEO
 useHead({
-  title: 'PadelSpot - Réservation de terrains de padel',
+  title: 'PadelSpot - Réservez votre terrain de padel en 2 clics',
   meta: [
-    { name: 'description', content: 'Réservez vos créneaux de padel en quelques clics. Trouvez les meilleurs centres près de chez vous.' }
-  ]
+    { name: 'description', content: 'Trouvez et réservez facilement les meilleurs terrains de padel près de chez vous. Simple, rapide et sécurisé.' },
+    { property: 'og:title', content: 'PadelSpot - Réservation de terrains de padel' },
+    { property: 'og:description', content: 'La plateforme de réservation de terrains de padel la plus simple et rapide.' },
+  ],
 })
+
+// Reactive data
+const searchLocation = ref('')
+
+const popularCenters = ref([
+  {
+    id: 1,
+    name: 'Padel Center Paris',
+    location: 'Paris 15ème',
+    rating: 4.8,
+    reviews: 124,
+    price: 25
+  },
+  {
+    id: 2,
+    name: 'Club Padel Lyon',
+    location: 'Lyon Confluence',
+    rating: 4.6,
+    reviews: 89,
+    price: 22
+  },
+  {
+    id: 3,
+    name: 'Marseille Padel Club',
+    location: 'Marseille 8ème',
+    rating: 4.7,
+    reviews: 156,
+    price: 20
+  }
+])
+
+// Methods
+const searchCenters = () => {
+  if (searchLocation.value.trim()) {
+    navigateTo(`/centers?location=${encodeURIComponent(searchLocation.value)}`)
+  }
+}
 </script>
