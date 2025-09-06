@@ -150,7 +150,7 @@ BEGIN
     slots_created := public.generate_time_slots_for_court(
       court_record.id,
       CURRENT_DATE,
-      CURRENT_DATE + INTERVAL '30 days',
+      (CURRENT_DATE + INTERVAL '30 days')::DATE,
       90 -- 90-minute slots
     );
     total_slots := total_slots + slots_created;
@@ -163,101 +163,43 @@ $$ LANGUAGE plpgsql;
 -- Generate the sample time slots
 SELECT public.generate_sample_time_slots();
 
--- Sample user profiles (these would typically be created via auth signup)
--- Note: In real usage, these would be created automatically via the trigger
--- when users sign up through Supabase Auth
+-- NOTE: User profiles will be created automatically when real users sign up
+-- through Supabase Auth. For now, we'll create centers without managers
+-- and you can assign them later when you create real user accounts.
 
-INSERT INTO public.user_profiles (
-  id,
-  email,
-  first_name,
-  last_name,
-  phone,
-  skill_level,
-  role,
-  is_active,
-  is_verified
-) VALUES 
--- Sample regular users
-('11111111-1111-1111-1111-111111111111', 'jean.dupont@email.com', 'Jean', 'Dupont', '+33 6 12 34 56 78', 'intermédiaire', 'player', true, true),
-('22222222-2222-2222-2222-222222222222', 'marie.martin@email.com', 'Marie', 'Martin', '+33 6 23 45 67 89', 'avancé', 'player', true, true),
-('33333333-3333-3333-3333-333333333333', 'pierre.bernard@email.com', 'Pierre', 'Bernard', '+33 6 34 56 78 90', 'débutant', 'player', true, true),
+-- For development, you can create users manually via:
+-- 1. Supabase Dashboard > Authentication > Users > "Add user"
+-- 2. Or sign up through your app once it's running
+-- 3. Then update centers with the real user IDs
 
--- Sample managers (you would assign these as managers of the centers above)
-('44444444-4444-4444-4444-444444444444', 'manager.paris@email.com', 'Sophie', 'Leclerc', '+33 6 45 67 89 01', 'expert', 'manager', true, true),
-('55555555-5555-5555-5555-555555555555', 'manager.lyon@email.com', 'Thomas', 'Moreau', '+33 6 56 78 90 12', 'expert', 'manager', true, true),
-('66666666-6666-6666-6666-666666666666', 'manager.marseille@email.com', 'Claire', 'Dubois', '+33 6 67 89 01 23', 'avancé', 'manager', true, true),
+-- COMMENTED OUT: Sample user data (requires real auth.users entries)
+--
+-- To test with real users, follow these steps:
+-- 1. Go to Supabase Dashboard > Authentication > Users
+-- 2. Click "Add user" and create test accounts:
+--    - manager.paris@email.com (password: test123456)
+--    - manager.lyon@email.com (password: test123456)
+--    - manager.marseille@email.com (password: test123456)
+--    - admin@padelspot.fr (password: admin123456)
+-- 3. Copy their UUIDs and run these updates:
+--
+-- UPDATE public.centers SET manager_user_id = 'PASTE_PARIS_MANAGER_UUID_HERE' WHERE id = '550e8400-e29b-41d4-a716-446655440001';
+-- UPDATE public.centers SET manager_user_id = 'PASTE_LYON_MANAGER_UUID_HERE' WHERE id = '550e8400-e29b-41d4-a716-446655440002';
+-- UPDATE public.centers SET manager_user_id = 'PASTE_MARSEILLE_MANAGER_UUID_HERE' WHERE id = '550e8400-e29b-41d4-a716-446655440003';
+-- UPDATE public.centers SET manager_user_id = 'PASTE_ADMIN_UUID_HERE' WHERE id = '550e8400-e29b-41d4-a716-446655440004';
+--
+-- Then update their roles:
+-- UPDATE public.user_profiles SET role = 'manager' WHERE id IN ('UUID1', 'UUID2', 'UUID3');
+-- UPDATE public.user_profiles SET role = 'admin' WHERE id = 'ADMIN_UUID';
 
--- Sample admin
-('77777777-7777-7777-7777-777777777777', 'admin@padelspot.fr', 'Admin', 'PadelSpot', '+33 6 78 90 12 34', 'expert', 'admin', true, true);
+-- NOTE: Sample bookings commented out as they require real user accounts
+-- You can create test bookings after setting up real users through authentication
 
--- Update centers with their managers
-UPDATE public.centers SET manager_user_id = '44444444-4444-4444-4444-444444444444' WHERE id = '550e8400-e29b-41d4-a716-446655440001';
-UPDATE public.centers SET manager_user_id = '55555555-5555-5555-5555-555555555555' WHERE id = '550e8400-e29b-41d4-a716-446655440002';
-UPDATE public.centers SET manager_user_id = '66666666-6666-6666-6666-666666666666' WHERE id = '550e8400-e29b-41d4-a716-446655440003';
-UPDATE public.centers SET manager_user_id = '77777777-7777-7777-7777-777777777777' WHERE id = '550e8400-e29b-41d4-a716-446655440004';
-
--- Sample bookings
-INSERT INTO public.bookings (
-  id,
-  user_id,
-  court_id,
-  center_id,
-  booking_date,
-  start_time,
-  end_time,
-  player_count,
-  base_price,
-  total_price,
-  status,
-  payment_status,
-  payment_method
-) VALUES 
-(
-  'b0000001-0000-0000-0000-000000000001',
-  '11111111-1111-1111-1111-111111111111',
-  '650e8400-e29b-41d4-a716-446655440001',
-  '550e8400-e29b-41d4-a716-446655440001',
-  CURRENT_DATE + 1,
-  '10:00:00',
-  '11:30:00',
-  2,
-  30.00,
-  30.00,
-  'confirmed',
-  'paid',
-  'card'
-),
-(
-  'b0000001-0000-0000-0000-000000000002',
-  '22222222-2222-2222-2222-222222222222',
-  '650e8400-e29b-41d4-a716-446655440005',
-  '550e8400-e29b-41d4-a716-446655440002',
-  CURRENT_DATE + 2,
-  '14:00:00',
-  '15:30:00',
-  4,
-  32.00,
-  32.00,
-  'confirmed',
-  'paid',
-  'paypal'
-),
-(
-  'b0000001-0000-0000-0000-000000000003',
-  '33333333-3333-3333-3333-333333333333',
-  '650e8400-e29b-41d4-a716-446655440008',
-  '550e8400-e29b-41d4-a716-446655440003',
-  CURRENT_DATE + 3,
-  '18:00:00',
-  '19:30:00',
-  2,
-  28.00,
-  28.00,
-  'pending',
-  'pending',
-  NULL
-);
+-- COMMENTED OUT: Sample bookings (require real user_ids from auth.users)
+--
+-- After creating real users, you can add sample bookings like this:
+-- INSERT INTO public.bookings (user_id, court_id, center_id, booking_date, start_time, end_time, player_count, base_price, total_price, status, payment_status)
+-- VALUES ('REAL_USER_UUID', 'COURT_UUID', 'CENTER_UUID', CURRENT_DATE + 1, '10:00:00', '11:30:00', 2, 30.00, 30.00, 'confirmed', 'paid');
 
 -- Clean up the temporary function
 DROP FUNCTION IF EXISTS public.generate_sample_time_slots();

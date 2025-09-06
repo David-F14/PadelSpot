@@ -106,8 +106,8 @@ CREATE OR REPLACE FUNCTION public.generate_time_slots_for_court(
 )
 RETURNS INTEGER AS $$
 DECLARE
-  current_date DATE;
-  current_time TIME;
+  loop_date DATE;
+  loop_time TIME;
   end_time TIME;
   court_record RECORD;
   center_record RECORD;
@@ -120,23 +120,25 @@ DECLARE
   calculated_price DECIMAL;
   slots_created INTEGER := 0;
 BEGIN
-  -- Get court and center information
-  SELECT c.*, centers.opening_hours INTO court_record, center_record
+  -- Get court information
+  SELECT c.* INTO court_record
   FROM public.courts c
-  JOIN public.centers centers ON centers.id = c.center_id
   WHERE c.id = p_court_id;
   
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Court not found';
   END IF;
   
-  opening_hours := center_record.opening_hours;
+  -- Get center opening hours
+  SELECT centers.opening_hours INTO opening_hours
+  FROM public.centers centers 
+  WHERE centers.id = court_record.center_id;
   
   -- Loop through each date
-  current_date := p_start_date;
-  WHILE current_date <= p_end_date LOOP
+  loop_date := p_start_date;
+  WHILE loop_date <= p_end_date LOOP
     -- Get day name
-    day_name := LOWER(TO_CHAR(current_date, 'Day'));
+    day_name := LOWER(TO_CHAR(loop_date, 'Day'));
     day_name := TRIM(day_name);
     
     -- Get opening hours for this day
@@ -150,15 +152,15 @@ BEGIN
         close_time := (day_hours->>'close')::TIME;
         
         -- Generate slots for this day
-        current_time := open_time;
-        WHILE current_time + INTERVAL '1 minute' * p_slot_duration_minutes <= close_time LOOP
-          end_time := current_time + INTERVAL '1 minute' * p_slot_duration_minutes;
+        loop_time := open_time;
+        WHILE loop_time + INTERVAL '1 minute' * p_slot_duration_minutes <= close_time LOOP
+          end_time := loop_time + INTERVAL '1 minute' * p_slot_duration_minutes;
           
           -- Calculate price for this slot
           calculated_price := public.calculate_court_price(
             p_court_id,
-            current_date,
-            current_time,
+            loop_date,
+            loop_time,
             p_slot_duration_minutes::DECIMAL / 60
           );
           
@@ -173,13 +175,13 @@ BEGIN
           )
           VALUES (
             p_court_id,
-            current_date,
-            current_time,
+            loop_date,
+            loop_time,
             end_time,
             calculated_price,
             CASE 
-              WHEN EXTRACT(DOW FROM current_date) IN (0, 6) THEN 'peak'
-              WHEN current_time >= TIME '18:00' AND current_time < TIME '21:00' THEN 'peak'
+              WHEN EXTRACT(DOW FROM loop_date) IN (0, 6) THEN 'peak'
+              WHEN loop_time >= TIME '18:00' AND loop_time < TIME '21:00' THEN 'peak'
               ELSE 'regular'
             END
           )
@@ -190,13 +192,13 @@ BEGIN
           END IF;
           
           -- Move to next time slot
-          current_time := current_time + INTERVAL '1 minute' * p_slot_duration_minutes;
+          loop_time := loop_time + INTERVAL '1 minute' * p_slot_duration_minutes;
         END LOOP;
       END IF;
     END IF;
     
     -- Move to next date
-    current_date := current_date + INTERVAL '1 day';
+    loop_date := loop_date + INTERVAL '1 day';
   END LOOP;
   
   RETURN slots_created;
