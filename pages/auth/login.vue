@@ -281,7 +281,8 @@ const handleLogin = async () => {
         errorMessage.value = error.message
       }
     } else {
-      // Login successful, user will be redirected by the watcher
+      // Login successful, redirect immediately
+      await navigateTo('/')
     }
   } catch (error) {
     errorMessage.value = 'Une erreur inattendue s\'est produite'

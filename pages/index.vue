@@ -15,7 +15,7 @@
             <UiButton variant="outline" @click="navigateTo('/auth/login')">
               Connexion
             </UiButton>
-            <UiButton @click="navigateTo('/auth/login')">
+            <UiButton @click="navigateTo('/auth/register')">
               S'inscrire
             </UiButton>
           </div>
