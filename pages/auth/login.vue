@@ -199,6 +199,11 @@
 import { ref, watch } from 'vue'
 import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 
+// Redirect authenticated users away from login
+definePageMeta({
+  auth: false // This page is for non-authenticated users
+})
+
 // SEO
 useHead({
   title: 'Connexion - PadelSpot',
@@ -218,17 +223,16 @@ const errorMessage = ref('')
 const emailError = ref('')
 const passwordError = ref('')
 
-// Get Supabase client and router
+// Get Supabase client
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
-const router = useRouter()
 
-// Redirect if already logged in
-watch(user, (newUser) => {
-  if (newUser) {
-    router.push('/')
+// Redirect if already logged in (but not on first load to avoid loops)
+watch(user, (newUser, oldUser) => {
+  if (newUser && !oldUser) {
+    navigateTo('/')
   }
-}, { immediate: true })
+})
 
 // Methods
 const validateForm = () => {
