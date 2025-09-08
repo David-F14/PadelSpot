@@ -51,6 +51,7 @@
               v-model="searchLocation" 
               placeholder="Où voulez-vous jouer ?"
               class="pl-12 h-12 text-lg"
+              @keyup.enter="searchCenters"
             />
             <div class="absolute left-3 top-1/2 transform -translate-y-1/2">
               <MapPin class="h-5 w-5 text-muted-foreground" />

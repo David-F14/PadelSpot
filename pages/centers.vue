@@ -49,6 +49,7 @@
                     v-model="searchQuery"
                     placeholder="Ville ou code postal"
                     class="pl-10"
+                    @keyup.enter="searchCenters"
                   />
                   <MapPin class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -84,9 +85,9 @@
             </div>
             
             <div class="flex flex-col sm:flex-row gap-4 mt-6">
-              <UiButton @click="searchCenters" class="flex-1" :disabled="loading">
+              <UiButton @click="searchCenters" class="flex-1">
                 <Search class="mr-2 h-4 w-4" />
-                {{ loading ? 'Recherche...' : 'Rechercher' }}
+                Rechercher
               </UiButton>
               
               <UiButton 
@@ -95,7 +96,7 @@
                 :disabled="gettingLocation"
               >
                 <MapPin class="mr-2 h-4 w-4" />
-                {{ gettingLocation ? 'Localisation...' : 'Ma position' }}
+                {{ gettingLocation ? 'Localisation en cours...' : 'Ma position' }}
               </UiButton>
             </div>
             
@@ -204,14 +205,8 @@
           </div>
         </div>
 
-        <!-- Loading State -->
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <Loader2 class="h-8 w-8 animate-spin text-primary" />
-          <span class="ml-2 text-muted-foreground">Recherche en cours...</span>
-        </div>
-
         <!-- No Results -->
-        <div v-else-if="filteredCenters.length === 0" class="text-center py-12">
+        <div v-if="!loading && filteredCenters.length === 0" class="text-center py-12">
           <MapPin class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 class="text-lg font-medium text-foreground mb-2">Aucun centre trouvé</h3>
           <p class="text-muted-foreground mb-4">
@@ -224,7 +219,7 @@
 
         <!-- Centers Grid -->
         <div 
-          v-else
+          v-if="filteredCenters.length > 0"
           :class="viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'"
         >
           <UiCard 
@@ -310,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { MapPin, Search, X, Grid, List, Star, Loader2 } from 'lucide-vue-next'
 
 // SEO
@@ -346,6 +341,10 @@ const userLocation = ref<{ lat: number; lng: number } | null>(null)
 const centers = ref<any[]>([])
 const hasMore = ref(true)
 const page = ref(1)
+
+// Debounce timer for search
+let searchTimer: NodeJS.Timeout | null = null
+const isInitialized = ref(false)
 
 // Computed
 const today = computed(() => {
@@ -384,7 +383,54 @@ const filteredCenters = computed(() => {
   return filtered
 })
 
+// Watchers
+watch(searchQuery, (newValue, oldValue) => {
+  // Skip automatic search during initialization
+  if (!isInitialized.value) return
+  
+  // If user is manually typing a new city, clear GPS coordinates to prioritize text search
+  if (newValue !== oldValue && userLocation.value) {
+    userLocation.value = null
+    locationError.value = '' // Clear any geolocation errors when switching to text search
+  }
+  
+  // Clear existing timer
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  
+  // Set new timer for 500ms delay
+  searchTimer = setTimeout(() => {
+    searchCenters()
+  }, 500)
+})
+
 // Methods
+const getCityFromCoordinates = async (lat: number, lng: number) => {
+  try {
+    // Using OpenStreetMap Nominatim API (free, no API key needed)
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
+    const data = await response.json()
+    
+    if (data && data.address) {
+      // Try to get city from different possible fields
+      const city = data.address.city || 
+                   data.address.town || 
+                   data.address.village || 
+                   data.address.municipality || 
+                   data.address.hamlet ||
+                   data.display_name?.split(',')[1]?.trim()
+      
+      if (city) {
+        searchQuery.value = city
+      }
+    }
+  } catch (error) {
+    console.error('Error getting city from coordinates:', error)
+    // Don't show error to user, just continue without city name
+  }
+}
+
 const getUserLocation = async () => {
   if (!navigator.geolocation) {
     locationError.value = 'La géolocalisation n\'est pas supportée par votre navigateur'
@@ -395,11 +441,15 @@ const getUserLocation = async () => {
   locationError.value = ''
   
   navigator.geolocation.getCurrentPosition(
-    (position) => {
+    async (position) => {
       userLocation.value = {
         lat: position.coords.latitude,
         lng: position.coords.longitude
       }
+      
+      // Try to get city name from coordinates
+      await getCityFromCoordinates(position.coords.latitude, position.coords.longitude)
+      
       gettingLocation.value = false
       searchCenters()
     },
@@ -477,5 +527,15 @@ onMounted(() => {
   }
   
   searchCenters()
+  
+  // Enable automatic search after initialization
+  isInitialized.value = true
+})
+
+// Cleanup
+onUnmounted(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
 })
 </script>
