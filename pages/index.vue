@@ -12,12 +12,22 @@
           </div>
           
           <div class="flex items-center space-x-4">
-            <UiButton variant="outline" @click="navigateTo('/auth/login')">
-              Connexion
-            </UiButton>
-            <UiButton @click="navigateTo('/auth/register')">
-              S'inscrire
-            </UiButton>
+            <template v-if="!user">
+              <UiButton variant="outline" @click="navigateTo('/auth/login')">
+                Connexion
+              </UiButton>
+              <UiButton @click="navigateTo('/auth/register')">
+                S'inscrire
+              </UiButton>
+            </template>
+            <template v-else>
+              <UiButton variant="outline" @click="handleLogout">
+                Déconnexion
+              </UiButton>
+              <UiButton @click="navigateTo('/centers')">
+                Réserver
+              </UiButton>
+            </template>
           </div>
         </nav>
       </div>
@@ -168,6 +178,10 @@
 import { ref } from 'vue'
 import { MapPin, Search, Clock, CreditCard, Star } from 'lucide-vue-next'
 
+// Auth
+const user = useSupabaseUser()
+const supabase = useSupabaseClient()
+
 // SEO
 useHead({
   title: 'PadelSpot - Réservez votre terrain de padel en 2 clics',
@@ -213,5 +227,10 @@ const searchCenters = () => {
   if (searchLocation.value.trim()) {
     navigateTo(`/centers?location=${encodeURIComponent(searchLocation.value)}`)
   }
+}
+
+const handleLogout = async () => {
+  await supabase.auth.signOut()
+  navigateTo('/')
 }
 </script>

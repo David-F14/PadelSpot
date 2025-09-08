@@ -325,7 +325,10 @@ useHead({
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 
-// Reactive data
+// Get route params
+const route = useRoute()
+
+// Reactive data  
 const searchQuery = ref('')
 const selectedDate = ref('')
 const selectedTime = ref('')
@@ -467,6 +470,12 @@ const handleLogout = async () => {
 // Initialize
 onMounted(() => {
   selectedDate.value = today.value
+  
+  // Get location from URL params if available
+  if (route.query.location) {
+    searchQuery.value = decodeURIComponent(route.query.location as string)
+  }
+  
   searchCenters()
 })
 </script>
