@@ -119,7 +119,6 @@
           <select 
             v-model="surfaceFilter"
             class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[160px]"
-            @change="applyFilters"
           >
             <option value="">Toutes surfaces</option>
             <option value="gazon_synthetique">Gazon synthétique</option>
@@ -132,7 +131,6 @@
           <select 
             v-model="courtTypeFilter"
             class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[140px]"
-            @change="applyFilters"
           >
             <option value="">Tous types</option>
             <option value="interieur">Intérieur</option>
@@ -144,7 +142,6 @@
           <select 
             v-model="priceFilter"
             class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[110px]"
-            @change="applyFilters"
           >
             <option value="">Tous prix</option>
             <option value="0-20">0€ - 20€</option>
@@ -157,7 +154,6 @@
           <select 
             v-model="sortBy"
             class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[100px]"
-            @change="applyFilters"
           >
             <option value="distance">Distance</option>
             <option value="rating">Note</option>
@@ -341,8 +337,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { MapPin, Search, X, Grid, List, Star, Loader2 } from 'lucide-vue-next'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { MapPin, Search, X, Grid, List, Star } from 'lucide-vue-next'
 
 // SEO
 useHead({
@@ -352,108 +348,58 @@ useHead({
   ],
 })
 
-// Auth
-const user = useSupabaseUser()
-const supabase = useSupabaseClient()
+// Composables
+const { user, signOut } = useAuth()
+const {
+  // State
+  loading,
+  
+  // Filters
+  searchQuery,
+  selectedDate,
+  selectedTime,
+  surfaceFilter,
+  courtTypeFilter,
+  priceFilter,
+  sortBy,
+  
+  // Location
+  gettingLocation,
+  locationError,
+  
+  // Pagination
+  hasMore,
+  
+  // Computed
+  today,
+  timeOptions,
+  hasActiveFilters,
+  filteredCenters,
+  
+  // Methods
+  searchCenters,
+  getUserLocation,
+  clearFilters,
+  formatDate,
+  initialize
+} = useCenters()
 
 // Get route params
 const route = useRoute()
 
-// Reactive data  
-const searchQuery = ref('')
-const selectedDate = ref('')
-const selectedTime = ref('')
-const surfaceFilter = ref('')
-const courtTypeFilter = ref('')
-const priceFilter = ref('')
-const sortBy = ref('distance')
+// UI State
 const viewMode = ref('grid')
-
-const loading = ref(false)
-const gettingLocation = ref(false)
-const locationError = ref('')
-const userLocation = ref<{ lat: number; lng: number } | null>(null)
-
-const centers = ref<any[]>([])
-const hasMore = ref(true)
-const page = ref(1)
 
 // Debounce timer for search
 let searchTimer: NodeJS.Timeout | null = null
 const isInitialized = ref(false)
 
-// Computed
-const today = computed(() => {
-  return new Date().toISOString().split('T')[0]
-})
-
-const timeOptions = computed(() => {
-  const times = []
-  for (let hour = 8; hour <= 22; hour++) {
-    times.push(`${hour.toString().padStart(2, '0')}:00`)
-    if (hour < 22) times.push(`${hour.toString().padStart(2, '0')}:30`)
-  }
-  return times
-})
-
-const hasActiveFilters = computed(() => {
-  return !!(surfaceFilter.value || courtTypeFilter.value || priceFilter.value)
-})
-
-const filteredCenters = computed(() => {
-  let filtered = [...centers.value]
-  
-  // Filter by surface type
-  if (surfaceFilter.value) {
-    filtered = filtered.filter(center => 
-      center.surface_types && center.surface_types.includes(surfaceFilter.value)
-    )
-  }
-  
-  // Filter by court type
-  if (courtTypeFilter.value) {
-    filtered = filtered.filter(center => 
-      center.court_types && center.court_types.includes(courtTypeFilter.value)
-    )
-  }
-  
-  // Filter by price range
-  if (priceFilter.value) {
-    if (priceFilter.value === '40+') {
-      filtered = filtered.filter(center => (center.min_price || 0) >= 40)
-    } else {
-      const [min, max] = priceFilter.value.split('-').map(p => parseInt(p))
-      filtered = filtered.filter(center => {
-        const price = center.min_price || 0
-        return price >= min && price <= max
-      })
-    }
-  }
-  
-  // Apply sorting
-  if (sortBy.value === 'rating') {
-    filtered.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0))
-  } else if (sortBy.value === 'price_low') {
-    filtered.sort((a, b) => (a.min_price || 999) - (b.min_price || 999))
-  } else if (sortBy.value === 'price_high') {
-    filtered.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
-  } else if (sortBy.value === 'distance' && userLocation.value) {
-    filtered.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999))
-  }
-  
-  return filtered
-})
+// Local methods
 
 // Watchers
 watch(searchQuery, (newValue, oldValue) => {
   // Skip automatic search during initialization
   if (!isInitialized.value) return
-  
-  // If user is manually typing a new city, clear GPS coordinates to prioritize text search
-  if (newValue !== oldValue && userLocation.value) {
-    userLocation.value = null
-    locationError.value = '' // Clear any geolocation errors when switching to text search
-  }
   
   // Clear existing timer
   if (searchTimer) {
@@ -466,165 +412,18 @@ watch(searchQuery, (newValue, oldValue) => {
   }, 500)
 })
 
-// Methods
-const getCityFromCoordinates = async (lat: number, lng: number) => {
-  try {
-    // Using OpenStreetMap Nominatim API (free, no API key needed)
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
-    const data = await response.json()
-    
-    if (data && data.address) {
-      // Try to get city from different possible fields
-      const city = data.address.city || 
-                   data.address.town || 
-                   data.address.village || 
-                   data.address.municipality || 
-                   data.address.hamlet ||
-                   data.display_name?.split(',')[1]?.trim()
-      
-      if (city) {
-        searchQuery.value = city
-      }
-    }
-  } catch (error) {
-    console.error('Error getting city from coordinates:', error)
-    // Don't show error to user, just continue without city name
-  }
-}
-
-const getUserLocation = async () => {
-  if (!navigator.geolocation) {
-    locationError.value = 'La géolocalisation n\'est pas supportée par votre navigateur'
-    return
-  }
-  
-  gettingLocation.value = true
-  locationError.value = ''
-  
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      userLocation.value = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      }
-      
-      // Try to get city name from coordinates
-      await getCityFromCoordinates(position.coords.latitude, position.coords.longitude)
-      
-      gettingLocation.value = false
-      searchCenters()
-    },
-    (error) => {
-      gettingLocation.value = false
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          locationError.value = 'Permission de géolocalisation refusée'
-          break
-        case error.POSITION_UNAVAILABLE:
-          locationError.value = 'Position indisponible'
-          break
-        case error.TIMEOUT:
-          locationError.value = 'Délai de géolocalisation dépassé'
-          break
-        default:
-          locationError.value = 'Erreur de géolocalisation'
-      }
-    }
-  )
-}
-
-const searchCenters = async () => {
-  loading.value = true
-  
-  try {
-    // Call our Supabase function to search centers
-    const { data: centerData, error } = await supabase.rpc('search_centers_by_location', {
-      p_latitude: userLocation.value?.lat || null,
-      p_longitude: userLocation.value?.lng || null,
-      p_city: searchQuery.value || null,
-      p_radius_km: 50,
-      p_limit: 20
-    })
-    
-    if (error) throw error
-    
-    // Get courts data for each center to enable filtering
-    if (centerData && centerData.length > 0) {
-      const centerIds = centerData.map((center: any) => center.id)
-      
-      const { data: courtsData, error: courtsError } = await supabase
-        .from('courts')
-        .select('center_id, surface_type, court_type, base_price_per_hour')
-        .in('center_id', centerIds)
-        .eq('is_active', true)
-      
-      if (courtsError) throw courtsError
-      
-      // Attach courts to centers and calculate min price
-      centers.value = centerData.map((center: any) => {
-        const centerCourts = courtsData?.filter((court: any) => court.center_id === center.id) || []
-        const minPrice = centerCourts.length > 0 
-          ? Math.min(...centerCourts.map((court: any) => court.base_price_per_hour))
-          : 25
-        
-        return {
-          ...center,
-          courts: centerCourts,
-          min_price: minPrice,
-          surface_types: [...new Set(centerCourts.map((court: any) => court.surface_type))],
-          court_types: [...new Set(centerCourts.map((court: any) => court.court_type))]
-        }
-      })
-    } else {
-      centers.value = []
-    }
-  } catch (error) {
-    console.error('Search error:', error)
-    centers.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-const applyFilters = () => {
-  // Filters are applied via computed property
-}
-
-const clearFilters = () => {
-  surfaceFilter.value = ''
-  courtTypeFilter.value = ''
-  priceFilter.value = ''
-  sortBy.value = 'distance'
-}
 
 const loadMore = () => {
-  page.value++
-  // Implement pagination
-}
-
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('fr-FR', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
-  })
+  // Implementation would go here for pagination
 }
 
 const handleLogout = async () => {
-  await supabase.auth.signOut()
-  navigateTo('/')
+  await signOut()
 }
 
 // Initialize
 onMounted(() => {
-  selectedDate.value = today.value
-  
-  // Get location from URL params if available
-  if (route.query.location) {
-    searchQuery.value = decodeURIComponent(route.query.location as string)
-  }
-  
+  initialize(route.query)
   searchCenters()
   
   // Enable automatic search after initialization

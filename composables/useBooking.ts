@@ -1,282 +1,324 @@
-export interface Court {
-  id: string
-  name: string
-  center_id: string
-  type: 'indoor' | 'outdoor'
-  surface: 'glass' | 'concrete' | 'artificial_grass'
-  price_per_hour: number
-  amenities: string[]
-  is_active: boolean
-}
-
-export interface Center {
-  id: string
-  name: string
-  address: string
-  city: string
-  postal_code: string
-  latitude: number
-  longitude: number
-  phone?: string
-  email?: string
-  website?: string
-  opening_hours: Record<string, { open: string; close: string } | null>
-  courts: Court[]
-}
-
 export interface TimeSlot {
   id: string
   court_id: string
+  court_name: string
   start_time: string
   end_time: string
-  date: string
-  price: number
+  final_price: number
+  surface_type: string
+  booking_date: string
   is_available: boolean
-  booking_id?: string
 }
 
 export interface Booking {
   id: string
   user_id: string
   court_id: string
-  time_slot_id: string
-  date: string
+  center_id: string
+  booking_date: string
   start_time: string
   end_time: string
+  player_count: number
+  base_price: number
   total_price: number
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
-  payment_status: 'pending' | 'paid' | 'refunded'
+  status: 'pending' | 'confirmed' | 'paid' | 'completed' | 'cancelled' | 'no_show'
+  payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
+  payment_intent_id?: string
+  special_requests?: string
   created_at: string
   updated_at: string
-  court?: Court
-  center?: Center
+  court?: {
+    id: string
+    name: string
+    surface_type: string
+    court_type: string
+  }
+  center?: {
+    id: string
+    name: string
+    address_line1: string
+    city: string
+    phone?: string
+  }
+}
+
+export interface BookingRequest {
+  court_id: string
+  center_id: string
+  booking_date: string
+  start_time: string
+  end_time: string
+  player_count: number
+  total_price: number
+  special_requests?: string
 }
 
 export const useBooking = () => {
   const supabase = useSupabaseClient()
-  const user = useSupabaseUser()
-
-  const selectedCenter = ref<Center | null>(null)
-  const selectedCourt = ref<Court | null>(null)
-  const selectedDate = ref<string>(new Date().toISOString().split('T')[0])
-  const selectedTimeSlot = ref<TimeSlot | null>(null)
+  const { user } = useAuth()
   
-  const isLoading = ref(false)
+  // State
+  const bookings = ref<Booking[]>([])
+  const availableSlots = ref<TimeSlot[]>([])
+  const selectedSlot = ref<TimeSlot | null>(null)
+  const loading = ref(false)
+  const loadingSlots = ref(false)
   const error = ref<string | null>(null)
-
-  // Search centers by location
-  const searchCenters = async (query: string, latitude?: number, longitude?: number) => {
-    isLoading.value = true
+  
+  // Methods
+  const getAvailableSlots = async (centerId: string, bookingDate: string, startTime = '08:00:00', endTime = '22:00:00') => {
+    loadingSlots.value = true
     error.value = null
-
+    
     try {
-      let queryBuilder = supabase
-        .from('centers')
-        .select('*, courts(*)')
-        .eq('is_active', true)
-
-      if (query) {
-        queryBuilder = queryBuilder.or(`name.ilike.%${query}%,city.ilike.%${query}%`)
-      }
-
-      const { data, error: fetchError } = await queryBuilder
-
-      if (fetchError) throw fetchError
-
-      // Sort by distance if coordinates provided
-      if (latitude && longitude && data) {
-        data.sort((a, b) => {
-          const distA = Math.sqrt(
-            Math.pow(a.latitude - latitude, 2) + Math.pow(a.longitude - longitude, 2)
-          )
-          const distB = Math.sqrt(
-            Math.pow(b.latitude - latitude, 2) + Math.pow(b.longitude - longitude, 2)
-          )
-          return distA - distB
+      const { data, error: slotsError } = await supabase.rpc('get_available_courts', {
+        p_center_id: centerId,
+        p_booking_date: bookingDate,
+        p_start_time: startTime,
+        p_end_time: endTime
+      })
+      
+      if (slotsError) throw slotsError
+      
+      // Transform data to time slots
+      const slots: TimeSlot[] = []
+      const timeSlots = ['08:00', '09:30', '11:00', '12:30', '14:00', '15:30', '17:00', '18:30', '20:00', '21:30']
+      
+      data?.forEach((court: any) => {
+        timeSlots.forEach(time => {
+          const endHour = parseInt(time.split(':')[0]) + 1
+          const endMinutes = parseInt(time.split(':')[1]) + 30
+          const endTimeFormatted = `${endHour.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}:00`
+          
+          slots.push({
+            id: `${court.court_id}-${time}`,
+            court_id: court.court_id,
+            court_name: court.court_name,
+            start_time: time + ':00',
+            end_time: endTimeFormatted,
+            final_price: court.calculated_price || court.base_price,
+            surface_type: court.surface_type,
+            booking_date: bookingDate,
+            is_available: true
+          })
         })
-      }
-
-      return data as Center[]
+      })
+      
+      availableSlots.value = slots
+      return slots
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la recherche'
+      console.error('Error fetching slots:', err)
+      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des crÃ©neaux'
+      availableSlots.value = []
       return []
     } finally {
-      isLoading.value = false
+      loadingSlots.value = false
     }
   }
-
-  // Get available time slots for a court and date
-  const getAvailableSlots = async (courtId: string, date: string) => {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('time_slots')
-        .select('*')
-        .eq('court_id', courtId)
-        .eq('date', date)
-        .eq('is_available', true)
-        .order('start_time')
-
-      if (fetchError) throw fetchError
-
-      return data as TimeSlot[]
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des créneaux'
-      return []
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  // Create a booking
-  const createBooking = async (timeSlotId: string) => {
+  
+  const createBooking = async (bookingRequest: BookingRequest) => {
     if (!user.value) {
-      error.value = 'Vous devez être connecté pour réserver'
-      return null
+      error.value = 'Vous devez Ãªtre connectÃ© pour rÃ©server'
+      throw new Error('User not authenticated')
     }
-
-    isLoading.value = true
+    
+    loading.value = true
     error.value = null
-
+    
     try {
-      // First, get the time slot details
-      const { data: timeSlot, error: slotError } = await supabase
-        .from('time_slots')
-        .select('*, court:courts(*)')
-        .eq('id', timeSlotId)
-        .single()
-
-      if (slotError) throw slotError
-      if (!timeSlot.is_available) {
-        throw new Error('Ce créneau n\'est plus disponible')
-      }
-
-      // Create the booking
-      const bookingData = {
-        user_id: user.value.id,
-        court_id: timeSlot.court_id,
-        time_slot_id: timeSlotId,
-        date: timeSlot.date,
-        start_time: timeSlot.start_time,
-        end_time: timeSlot.end_time,
-        total_price: timeSlot.price,
-        status: 'pending',
-        payment_status: 'pending'
-      }
-
-      const { data: booking, error: bookingError } = await supabase
+      const { data, error: bookingError } = await supabase
         .from('bookings')
-        .insert(bookingData)
-        .select('*')
+        .insert({
+          user_id: user.value.id,
+          ...bookingRequest,
+          status: 'pending',
+          payment_status: 'pending'
+        })
+        .select(`
+          *,
+          court:courts(id, name, surface_type, court_type),
+          center:centers(id, name, address_line1, city, phone)
+        `)
         .single()
-
+      
       if (bookingError) throw bookingError
-
-      // Mark time slot as unavailable
-      await supabase
-        .from('time_slots')
-        .update({ is_available: false, booking_id: booking.id })
-        .eq('id', timeSlotId)
-
-      return booking as Booking
+      
+      return data as Booking
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la réservation'
-      return null
+      console.error('Error creating booking:', err)
+      error.value = err instanceof Error ? err.message : 'Erreur lors de la crÃ©ation de la rÃ©servation'
+      throw err
     } finally {
-      isLoading.value = false
+      loading.value = false
     }
   }
-
-  // Get user bookings
-  const getUserBookings = async () => {
-    if (!user.value) return []
-
-    isLoading.value = true
+  
+  const getUserBookings = async (limit = 20) => {
+    if (!user.value) {
+      bookings.value = []
+      return []
+    }
+    
+    loading.value = true
     error.value = null
-
+    
     try {
       const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(`
           *,
-          court:courts(*),
-          center:courts(center:centers(*))
+          court:courts(id, name, surface_type, court_type),
+          center:centers(id, name, address_line1, city, phone)
         `)
         .eq('user_id', user.value.id)
-        .order('date', { ascending: false })
+        .order('booking_date', { ascending: false })
         .order('start_time', { ascending: false })
-
+        .limit(limit)
+      
       if (fetchError) throw fetchError
-
+      
+      bookings.value = data as Booking[]
       return data as Booking[]
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des réservations'
+      console.error('Error fetching bookings:', err)
+      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des rÃ©servations'
       return []
     } finally {
-      isLoading.value = false
+      loading.value = false
     }
   }
-
-  // Cancel a booking
-  const cancelBooking = async (bookingId: string) => {
-    isLoading.value = true
+  
+  const getBookingById = async (bookingId: string) => {
+    loading.value = true
     error.value = null
-
+    
     try {
-      // Get booking details
-      const { data: booking, error: bookingError } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('bookings')
-        .select('time_slot_id')
+        .select(`
+          *,
+          court:courts(id, name, surface_type, court_type),
+          center:centers(id, name, address_line1, city, phone)
+        `)
         .eq('id', bookingId)
         .single()
-
-      if (bookingError) throw bookingError
-
-      // Update booking status
-      await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', bookingId)
-
-      // Make time slot available again
-      await supabase
-        .from('time_slots')
-        .update({ is_available: true, booking_id: null })
-        .eq('id', booking.time_slot_id)
-
-      return true
+      
+      if (fetchError) throw fetchError
+      
+      return data as Booking
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de l\'annulation'
-      return false
+      console.error('Error fetching booking:', err)
+      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement de la rÃ©servation'
+      throw err
     } finally {
-      isLoading.value = false
+      loading.value = false
     }
   }
-
+  
+  const updateBookingStatus = async (bookingId: string, status: Booking['status'], paymentStatus?: Booking['payment_status']) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const updateData: any = {
+        status,
+        updated_at: new Date().toISOString()
+      }
+      
+      if (paymentStatus) {
+        updateData.payment_status = paymentStatus
+      }
+      
+      const { data, error: updateError } = await supabase
+        .from('bookings')
+        .update(updateData)
+        .eq('id', bookingId)
+        .select()
+        .single()
+      
+      if (updateError) throw updateError
+      
+      // Update local bookings array
+      const index = bookings.value.findIndex(b => b.id === bookingId)
+      if (index !== -1) {
+        bookings.value[index] = { ...bookings.value[index], ...updateData }
+      }
+      
+      return data as Booking
+    } catch (err) {
+      console.error('Error updating booking:', err)
+      error.value = err instanceof Error ? err.message : 'Erreur lors de la mise Ã  jour'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  const cancelBooking = async (bookingId: string) => {
+    return updateBookingStatus(bookingId, 'cancelled')
+  }
+  
+  const confirmBooking = async (bookingId: string) => {
+    return updateBookingStatus(bookingId, 'confirmed', 'paid')
+  }
+  
+  const selectSlot = (slot: TimeSlot) => {
+    selectedSlot.value = slot
+  }
+  
+  const clearSelectedSlot = () => {
+    selectedSlot.value = null
+  }
+  
+  const clearError = () => {
+    error.value = null
+  }
+  
+  // Computed
+  const upcomingBookings = computed(() => {
+    const now = new Date()
+    return bookings.value.filter(booking => {
+      const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`)
+      return bookingDateTime > now && booking.status !== 'cancelled'
+    })
+  })
+  
+  const pastBookings = computed(() => {
+    const now = new Date()
+    return bookings.value.filter(booking => {
+      const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`)
+      return bookingDateTime <= now || booking.status === 'completed'
+    })
+  })
+  
+  const cancelledBookings = computed(() => {
+    return bookings.value.filter(booking => booking.status === 'cancelled')
+  })
+  
   return {
     // State
-    selectedCenter,
-    selectedCourt,
-    selectedDate,
-    selectedTimeSlot,
-    isLoading: readonly(isLoading),
+    bookings: readonly(bookings),
+    availableSlots: readonly(availableSlots),
+    selectedSlot: readonly(selectedSlot),
+    loading: readonly(loading),
+    loadingSlots: readonly(loadingSlots),
     error: readonly(error),
-
-    // Actions
-    searchCenters,
+    
+    // Computed
+    upcomingBookings,
+    pastBookings,
+    cancelledBookings,
+    
+    // Methods
     getAvailableSlots,
     createBooking,
     getUserBookings,
+    getBookingById,
+    updateBookingStatus,
     cancelBooking,
-
-    // Helpers
-    clearError: () => { error.value = null },
-    resetSelection: () => {
-      selectedCenter.value = null
-      selectedCourt.value = null
-      selectedTimeSlot.value = null
-    }
+    confirmBooking,
+    selectSlot,
+    clearSelectedSlot,
+    clearError
   }
 }

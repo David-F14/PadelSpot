@@ -4,12 +4,7 @@
     <header class="border-b border-border">
       <div class="container mx-auto px-4 py-4">
         <nav class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <UiButton variant="ghost" size="sm" @click="navigateTo('/')">
-              <ArrowLeft class="mr-2 h-4 w-4" />
-              Retour
-            </UiButton>
-            
+          <div class="flex items-center space-x-4">            
             <NuxtLink to="/" class="flex items-center space-x-2">
               <div class="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
                 <span class="text-primary-foreground font-bold text-lg">P</span>
