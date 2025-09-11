@@ -5,7 +5,7 @@
       <div class="container mx-auto px-4 py-4">
         <nav class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <UiButton variant="ghost" size="sm" @click="navigateTo('/centers')">
+            <UiButton variant="ghost" size="sm" @click="navigateTo('/')">
               <ArrowLeft class="mr-2 h-4 w-4" />
               Retour
             </UiButton>
@@ -43,8 +43,8 @@
       <p class="text-muted-foreground mb-4">
         Le centre que vous recherchez n'existe pas ou n'est plus disponible.
       </p>
-      <UiButton @click="navigateTo('/centers')">
-        Retour aux centres
+      <UiButton @click="navigateTo('/')">
+        Retour à l'accueil
       </UiButton>
     </div>
 
