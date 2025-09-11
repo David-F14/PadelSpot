@@ -112,13 +112,13 @@
     <!-- Filters Section -->
     <section class="py-4 border-b border-border">
       <div class="container mx-auto px-4">
-        <div class="flex flex-wrap gap-4 items-center">
+        <div class="flex flex-wrap gap-3 items-center">
           <span class="text-sm font-medium text-foreground">Filtres :</span>
           
           <!-- Surface Type Filter -->
           <select 
             v-model="surfaceFilter"
-            class="text-sm rounded-md border border-input bg-background px-3 py-1"
+            class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[160px]"
             @change="applyFilters"
           >
             <option value="">Toutes surfaces</option>
@@ -131,7 +131,7 @@
           <!-- Court Type Filter -->
           <select 
             v-model="courtTypeFilter"
-            class="text-sm rounded-md border border-input bg-background px-3 py-1"
+            class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[140px]"
             @change="applyFilters"
           >
             <option value="">Tous types</option>
@@ -143,7 +143,7 @@
           <!-- Price Range -->
           <select 
             v-model="priceFilter"
-            class="text-sm rounded-md border border-input bg-background px-3 py-1"
+            class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[110px]"
             @change="applyFilters"
           >
             <option value="">Tous prix</option>
@@ -156,7 +156,7 @@
           <!-- Sort -->
           <select 
             v-model="sortBy"
-            class="text-sm rounded-md border border-input bg-background px-3 py-1"
+            class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[100px]"
             @change="applyFilters"
           >
             <option value="distance">Distance</option>
@@ -182,6 +182,9 @@
             {{ filteredCenters.length }} centre(s) trouvé(s)
             <span v-if="searchQuery" class="text-muted-foreground">
               près de "{{ searchQuery }}"
+            </span>
+            <span v-if="hasActiveFilters" class="text-sm text-primary">
+              (filtré)
             </span>
           </h3>
           
@@ -220,16 +223,19 @@
         <!-- Centers Grid -->
         <div 
           v-if="filteredCenters.length > 0"
-          :class="viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'"
+          :class="viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'"
         >
           <UiCard 
             v-for="center in filteredCenters" 
             :key="center.id"
-            class="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            :class="[
+              'overflow-hidden hover:shadow-lg transition-shadow cursor-pointer',
+              viewMode === 'list' ? 'flex-row flex' : ''
+            ]"
             @click="navigateTo(`/centers/${center.id}`)"
           >
             <!-- Center Image -->
-            <div class="h-48 bg-muted relative">
+            <div :class="viewMode === 'list' ? 'w-48 h-32 flex-shrink-0 bg-muted relative' : 'h-32 bg-muted relative'">
               <img 
                 v-if="center.cover_image_url"
                 :src="center.cover_image_url"
@@ -237,56 +243,71 @@
                 class="w-full h-full object-cover"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div class="absolute bottom-4 left-4 text-white">
+              <!-- Titre et ville seulement en mode grid -->
+              <div v-if="viewMode === 'grid'" class="absolute bottom-4 left-4 text-white">
                 <h4 class="text-lg font-semibold">{{ center.name }}</h4>
                 <p class="text-sm opacity-90">{{ center.city }}</p>
               </div>
               
               <!-- Distance Badge -->
-              <div v-if="center.distance_km" class="absolute top-4 right-4 bg-black/70 text-white px-2 py-1 rounded text-xs">
+              <div v-if="center.distance_km" class="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
                 {{ center.distance_km }}km
               </div>
               
               <!-- Availability Badge -->
-              <div class="absolute top-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+              <div class="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
                 ✓ Disponible
               </div>
             </div>
 
-            <UiCardContent class="p-4">
-              <!-- Rating -->
-              <div class="flex items-center space-x-2 mb-2">
-                <div class="flex items-center">
-                  <Star class="h-4 w-4 text-yellow-400 fill-current" />
-                  <span class="text-sm font-medium ml-1">{{ center.average_rating || 'N/A' }}</span>
+            <UiCardContent :class="viewMode === 'list' ? 'p-4 flex-1 flex flex-col justify-between' : 'p-3'">
+              <div>
+                <!-- Titre et ville en mode liste -->
+                <div v-if="viewMode === 'list'" class="mb-2">
+                  <h4 class="text-lg font-semibold">{{ center.name }}</h4>
+                  <p class="text-sm text-muted-foreground">{{ center.city }}</p>
                 </div>
-                <span class="text-sm text-muted-foreground">({{ center.total_reviews || 0 }} avis)</span>
-              </div>
 
-              <!-- Address -->
-              <p class="text-sm text-muted-foreground mb-3">
-                {{ center.address_line1 }}
-              </p>
+                <!-- Rating et adresse sur une ligne en mode liste -->
+                <div :class="viewMode === 'list' ? 'flex items-center justify-between mb-2' : 'mb-2'">
+                  <div class="flex items-center space-x-2">
+                    <div class="flex items-center">
+                      <Star class="h-4 w-4 text-yellow-400 fill-current" />
+                      <span class="text-sm font-medium ml-1">{{ center.average_rating || 'N/A' }}</span>
+                    </div>
+                    <span class="text-sm text-muted-foreground">({{ center.total_reviews || 0 }} avis)</span>
+                  </div>
+                  
+                  <div v-if="viewMode === 'list'" class="text-xs text-muted-foreground">
+                    {{ center.address_line1 }}
+                  </div>
+                </div>
 
-              <!-- Amenities -->
-              <div class="flex flex-wrap gap-1 mb-3">
-                <span 
-                  v-for="amenity in (center.amenities || []).slice(0, 3)" 
-                  :key="amenity"
-                  class="text-xs bg-muted px-2 py-1 rounded"
-                >
-                  {{ amenity.replace('_', ' ') }}
-                </span>
-                <span 
-                  v-if="(center.amenities || []).length > 3"
-                  class="text-xs bg-muted px-2 py-1 rounded"
-                >
-                  +{{ (center.amenities || []).length - 3 }}
-                </span>
+                <!-- Address complet en mode grid -->
+                <p v-if="viewMode === 'grid'" class="text-sm text-muted-foreground mb-2">
+                  {{ center.address_line1 }}
+                </p>
+
+                <!-- Amenities compacts -->
+                <div v-if="viewMode === 'grid'" class="flex flex-wrap gap-1 mb-2">
+                  <span 
+                    v-for="amenity in (center.amenities || []).slice(0, 3)" 
+                    :key="amenity"
+                    class="text-xs bg-muted px-2 py-1 rounded"
+                  >
+                    {{ amenity.replace('_', ' ') }}
+                  </span>
+                  <span 
+                    v-if="(center.amenities || []).length > 3"
+                    class="text-xs bg-muted px-2 py-1 rounded"
+                  >
+                    +{{ (center.amenities || []).length - 3 }}
+                  </span>
+                </div>
               </div>
 
               <!-- Availability Info -->
-              <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center justify-between mb-1">
                 <div class="text-sm text-green-600 font-medium">
                   {{ selectedDate && selectedTime ? '3 créneaux disponibles' : '8 terrains disponibles' }}
                 </div>
@@ -301,7 +322,7 @@
                   À partir de
                 </div>
                 <div class="text-lg font-bold text-primary">
-                  25€<span class="text-sm font-normal text-muted-foreground">/h</span>
+                  {{ center.min_price || 25 }}€<span class="text-sm font-normal text-muted-foreground">/h</span>
                 </div>
               </div>
             </UiCardContent>
@@ -375,22 +396,47 @@ const timeOptions = computed(() => {
   return times
 })
 
+const hasActiveFilters = computed(() => {
+  return !!(surfaceFilter.value || courtTypeFilter.value || priceFilter.value)
+})
+
 const filteredCenters = computed(() => {
   let filtered = [...centers.value]
   
-  // Apply filters
+  // Filter by surface type
   if (surfaceFilter.value) {
-    // This would need to be implemented with actual court data
+    filtered = filtered.filter(center => 
+      center.surface_types && center.surface_types.includes(surfaceFilter.value)
+    )
   }
   
+  // Filter by court type
+  if (courtTypeFilter.value) {
+    filtered = filtered.filter(center => 
+      center.court_types && center.court_types.includes(courtTypeFilter.value)
+    )
+  }
+  
+  // Filter by price range
   if (priceFilter.value) {
-    const [min, max] = priceFilter.value.split('-').map(p => parseInt(p.replace('+', '')))
-    // Filter by price range
+    if (priceFilter.value === '40+') {
+      filtered = filtered.filter(center => (center.min_price || 0) >= 40)
+    } else {
+      const [min, max] = priceFilter.value.split('-').map(p => parseInt(p))
+      filtered = filtered.filter(center => {
+        const price = center.min_price || 0
+        return price >= min && price <= max
+      })
+    }
   }
   
   // Apply sorting
   if (sortBy.value === 'rating') {
     filtered.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0))
+  } else if (sortBy.value === 'price_low') {
+    filtered.sort((a, b) => (a.min_price || 999) - (b.min_price || 999))
+  } else if (sortBy.value === 'price_high') {
+    filtered.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
   } else if (sortBy.value === 'distance' && userLocation.value) {
     filtered.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999))
   }
@@ -492,7 +538,7 @@ const searchCenters = async () => {
   
   try {
     // Call our Supabase function to search centers
-    const { data, error } = await supabase.rpc('search_centers_by_location', {
+    const { data: centerData, error } = await supabase.rpc('search_centers_by_location', {
       p_latitude: userLocation.value?.lat || null,
       p_longitude: userLocation.value?.lng || null,
       p_city: searchQuery.value || null,
@@ -502,7 +548,36 @@ const searchCenters = async () => {
     
     if (error) throw error
     
-    centers.value = data || []
+    // Get courts data for each center to enable filtering
+    if (centerData && centerData.length > 0) {
+      const centerIds = centerData.map((center: any) => center.id)
+      
+      const { data: courtsData, error: courtsError } = await supabase
+        .from('courts')
+        .select('center_id, surface_type, court_type, base_price_per_hour')
+        .in('center_id', centerIds)
+        .eq('is_active', true)
+      
+      if (courtsError) throw courtsError
+      
+      // Attach courts to centers and calculate min price
+      centers.value = centerData.map((center: any) => {
+        const centerCourts = courtsData?.filter((court: any) => court.center_id === center.id) || []
+        const minPrice = centerCourts.length > 0 
+          ? Math.min(...centerCourts.map((court: any) => court.base_price_per_hour))
+          : 25
+        
+        return {
+          ...center,
+          courts: centerCourts,
+          min_price: minPrice,
+          surface_types: [...new Set(centerCourts.map((court: any) => court.surface_type))],
+          court_types: [...new Set(centerCourts.map((court: any) => court.court_type))]
+        }
+      })
+    } else {
+      centers.value = []
+    }
   } catch (error) {
     console.error('Search error:', error)
     centers.value = []
