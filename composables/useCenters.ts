@@ -258,6 +258,18 @@ export const useCenters = () => {
     courtTypeFilter.value = ''
     priceFilter.value = ''
     sortBy.value = 'distance'
+    // Also clear location when clearing filters
+    searchQuery.value = ''
+    userLocation.value = null
+    locationError.value = ''
+  }
+
+  const clearLocation = () => {
+    searchQuery.value = ''
+    userLocation.value = null
+    locationError.value = ''
+    // Relancer la recherche pour afficher tous les centres
+    searchCenters()
   }
 
   const formatDate = (dateStr: string) => {
@@ -321,6 +333,7 @@ export const useCenters = () => {
     searchCenters,
     getUserLocation,
     clearFilters,
+    clearLocation,
     formatDate,
     initialize
   }

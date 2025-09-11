@@ -48,10 +48,17 @@
                   <UiInput
                     v-model="searchQuery"
                     placeholder="Ville ou code postal"
-                    class="pl-10"
+                    class="pl-10 pr-10"
                     @keyup.enter="searchCenters"
                   />
                   <MapPin class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <button
+                    v-if="searchQuery"
+                    @click="clearLocation"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X class="h-4 w-4" />
+                  </button>
                 </div>
               </div>
               
@@ -380,6 +387,7 @@ const {
   searchCenters,
   getUserLocation,
   clearFilters,
+  clearLocation,
   formatDate,
   initialize
 } = useCenters()
@@ -400,6 +408,12 @@ const isInitialized = ref(false)
 watch(searchQuery, (newValue, oldValue) => {
   // Skip automatic search during initialization
   if (!isInitialized.value) return
+  
+  // If field becomes empty, clear location immediately
+  if (!newValue && oldValue) {
+    clearLocation()
+    return
+  }
   
   // Clear existing timer
   if (searchTimer) {
