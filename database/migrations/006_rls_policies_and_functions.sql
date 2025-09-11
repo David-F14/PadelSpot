@@ -109,7 +109,7 @@ CREATE OR REPLACE FUNCTION public.search_centers_by_location(
   p_limit INTEGER DEFAULT 20
 )
 RETURNS TABLE (
-  center_id UUID,
+  id UUID,
   name TEXT,
   description TEXT,
   address_line1 TEXT,

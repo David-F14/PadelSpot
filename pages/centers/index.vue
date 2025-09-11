@@ -224,9 +224,9 @@
         >
           <UiCard 
             v-for="center in filteredCenters" 
-            :key="center.center_id"
+            :key="center.id"
             class="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-            @click="navigateTo(`/centers/${center.center_id}`)"
+            @click="navigateTo(`/centers/${center.id}`)"
           >
             <!-- Center Image -->
             <div class="h-48 bg-muted relative">
