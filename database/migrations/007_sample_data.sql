@@ -232,5 +232,25 @@ JOIN public.centers centers ON centers.id = c.center_id;
 -- Grant access to the view
 GRANT SELECT ON public.courts_with_centers TO authenticated, anon;
 
+-- Add fake images to centers
+UPDATE public.centers SET 
+  cover_image_url = 'https://picsum.photos/800/400?random=' || ABS(HASHTEXT(id::text)) % 1000,
+  logo_url = 'https://picsum.photos/200/200?random=' || ABS(HASHTEXT(id::text)) % 1000,
+  gallery_images = ARRAY[
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 1),
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 2),
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 3),
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 4),
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 5)
+  ];
+
+-- Add fake images to courts
+UPDATE public.courts SET 
+  image_urls = ARRAY[
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 10),
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 11),
+    'https://picsum.photos/800/600?random=' || (ABS(HASHTEXT(id::text)) % 1000 + 12)
+  ];
+
 -- Success message
-SELECT 'Sample data successfully inserted! You can now test the application with realistic data.' as message;
+SELECT 'Sample data with fake images successfully inserted! You can now test the application with realistic data and images.' as message;

@@ -62,12 +62,36 @@
           <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
           
           <!-- Center Info Overlay -->
-          <div class="absolute bottom-0 left-0 right-0 p-8 text-white">
+          <div class="absolute inset-0 p-8 text-white flex flex-col justify-between">
             <div class="container mx-auto">
-              <div class="flex items-end justify-between">
-                <div>
-                  <h1 class="text-4xl font-bold mb-2">{{ center.name }}</h1>
-                  <div class="flex items-center space-x-4 mb-2">
+              <!-- Gallery Thumbnails moved to top-right -->
+              <div v-if="center.gallery_images && center.gallery_images.length > 0" class="flex justify-end mb-4">
+                <div class="flex space-x-2">
+                  <div 
+                    v-for="(image, index) in center.gallery_images.slice(0, 4)" 
+                    :key="index"
+                    class="w-16 h-16 bg-black/50 rounded border-2 border-white/50 overflow-hidden cursor-pointer hover:border-white transition-all"
+                    @click="openGallery(index)"
+                  >
+                    <img :src="image" :alt="`Photo ${index + 1}`" class="w-full h-full object-cover" />
+                  </div>
+                  <div 
+                    v-if="center.gallery_images.length > 4"
+                    class="w-16 h-16 bg-black/70 rounded border-2 border-white/50 flex items-center justify-center text-white text-xs font-semibold cursor-pointer"
+                    @click="openGallery(4)"
+                  >
+                    +{{ center.gallery_images.length - 4 }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center info moved to middle-left -->
+            <div class="container mx-auto">
+              <div class="flex items-center justify-between">
+                <div class="max-w-2xl">
+                  <h1 class="text-4xl font-bold mb-3">{{ center.name }}</h1>
+                  <div class="flex items-center space-x-4 mb-3">
                     <div class="flex items-center">
                       <Star class="h-5 w-5 text-yellow-400 fill-current" />
                       <span class="ml-1 font-semibold">{{ center.average_rating || 'N/A' }}</span>
@@ -78,7 +102,7 @@
                       <span class="ml-1 opacity-80">{{ center.city }}</span>
                     </div>
                   </div>
-                  <p class="text-lg opacity-90">{{ center.description }}</p>
+                  <p class="text-lg opacity-90 leading-relaxed">{{ center.description }}</p>
                 </div>
                 
                 <!-- Quick Book Button -->
@@ -92,29 +116,12 @@
                 </UiButton>
               </div>
             </div>
+
+            <!-- Empty div for spacing at bottom -->
+            <div></div>
           </div>
         </div>
 
-        <!-- Gallery Thumbnails -->
-        <div v-if="center.gallery_images && center.gallery_images.length > 0" class="absolute bottom-4 left-8">
-          <div class="flex space-x-2">
-            <div 
-              v-for="(image, index) in center.gallery_images.slice(0, 4)" 
-              :key="index"
-              class="w-16 h-16 bg-black/50 rounded border-2 border-white/50 overflow-hidden cursor-pointer hover:border-white transition-all"
-              @click="openGallery(index)"
-            >
-              <img :src="image" :alt="`Photo ${index + 1}`" class="w-full h-full object-cover" />
-            </div>
-            <div 
-              v-if="center.gallery_images.length > 4"
-              class="w-16 h-16 bg-black/70 rounded border-2 border-white/50 flex items-center justify-center text-white text-xs font-semibold cursor-pointer"
-              @click="openGallery(4)"
-            >
-              +{{ center.gallery_images.length - 4 }}
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- Main Content -->

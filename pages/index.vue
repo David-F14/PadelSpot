@@ -129,25 +129,40 @@
           Centres populaires
         </h3>
         
-        <div class="grid md:grid-cols-3 gap-6">
-          <UiCard v-for="center in popularCenters" :key="center.id" class="overflow-hidden">
+        <div v-if="loading" class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        </div>
+        
+        <div v-else class="grid md:grid-cols-3 gap-6">
+          <UiCard 
+            v-for="center in popularCenters" 
+            :key="center.id" 
+            class="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            @click="navigateTo(`/centers/${center.id}`)"
+          >
             <div class="h-48 bg-muted relative">
+              <img 
+                v-if="center.cover_image_url"
+                :src="center.cover_image_url"
+                :alt="center.name"
+                class="w-full h-full object-cover"
+              />
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div class="absolute bottom-4 left-4 text-white">
                 <h4 class="text-lg font-semibold">{{ center.name }}</h4>
-                <p class="text-sm opacity-90">{{ center.location }}</p>
+                <p class="text-sm opacity-90">{{ center.city }}</p>
               </div>
             </div>
             <UiCardContent>
               <div class="flex justify-between items-center mt-4">
                 <div class="flex items-center space-x-1">
                   <Star class="h-4 w-4 text-yellow-400 fill-current" />
-                  <span class="text-sm font-medium">{{ center.rating }}</span>
-                  <span class="text-sm text-muted-foreground">({{ center.reviews }})</span>
+                  <span class="text-sm font-medium">{{ center.average_rating || 'N/A' }}</span>
+                  <span class="text-sm text-muted-foreground">({{ center.total_reviews || 0 }})</span>
                 </div>
                 <div class="text-right">
                   <div class="text-sm text-muted-foreground">À partir de</div>
-                  <div class="text-lg font-bold text-primary">{{ center.price }}€/h</div>
+                  <div class="text-lg font-bold text-primary">25€/h</div>
                 </div>
               </div>
             </UiCardContent>
@@ -195,33 +210,32 @@ useHead({
 
 // Reactive data
 const searchLocation = ref('')
+const popularCenters = ref<any[]>([])
+const loading = ref(false)
 
-const popularCenters = ref([
-  {
-    id: 1,
-    name: 'Padel Center Paris',
-    location: 'Paris 15ème',
-    rating: 4.8,
-    reviews: 124,
-    price: 25
-  },
-  {
-    id: 2,
-    name: 'Club Padel Lyon',
-    location: 'Lyon Confluence',
-    rating: 4.6,
-    reviews: 89,
-    price: 22
-  },
-  {
-    id: 3,
-    name: 'Marseille Padel Club',
-    location: 'Marseille 8ème',
-    rating: 4.7,
-    reviews: 156,
-    price: 20
+// Fetch popular centers
+const fetchPopularCenters = async () => {
+  loading.value = true
+  
+  try {
+    const { data, error } = await supabase
+      .from('centers')
+      .select('id, name, city, cover_image_url, average_rating, total_reviews')
+      .eq('is_active', true)
+      .eq('is_verified', true)
+      .order('average_rating', { ascending: false })
+      .limit(6)
+    
+    if (error) throw error
+    
+    popularCenters.value = data || []
+  } catch (error) {
+    console.error('Error fetching popular centers:', error)
+    popularCenters.value = []
+  } finally {
+    loading.value = false
   }
-])
+}
 
 // Methods
 const searchCenters = () => {
@@ -234,4 +248,9 @@ const handleLogout = async () => {
   await supabase.auth.signOut()
   navigateTo('/')
 }
+
+// Initialize
+onMounted(() => {
+  fetchPopularCenters()
+})
 </script>
