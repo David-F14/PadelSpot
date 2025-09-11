@@ -142,16 +142,16 @@ NUXT_PUBLIC_APP_URL=http://localhost:3000
 ## Roadmap de développement
 
 ### Phase 1 - Fondations (MVP)
-- [ ] 1. Créer les premières pages (pages/index.vue, pages/auth/login.vue)
-- [ ] 2. Ajouter des composants ShadCN (npx shadcn-vue@latest add button card input)
-- [ ] 3. Créer les schémas de base de données Supabase
+- [x] 1. Créer les premières pages (pages/index.vue, pages/auth/login.vue)
+- [x] 2. Ajouter des composants ShadCN (npx shadcn-vue@latest add button card input)
+- [x] 3. Créer les schémas de base de données Supabase
 
 ### Phase 2 - Authentification et pages principales
-- [ ] 4. Implémenter l'authentification Supabase
-- [ ] 5. Créer les pages centres, réservation
+- [x] 4. Implémenter l'authentification Supabase
+- [x] 5. Créer les pages centres, réservation
 
 ### Phase 3 - Fonctionnalités core
-- [ ] 6. Implémenter la recherche géolocalisée de centres
+- [x] 6. Implémenter la recherche géolocalisée de centres
 - [ ] 7. Développer l'interface de sélection de créneaux
 - [ ] 8. Développer le dashboard Gérant
 

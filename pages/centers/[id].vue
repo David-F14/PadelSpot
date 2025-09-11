@@ -238,54 +238,100 @@
                 </UiCardHeader>
                 <UiCardContent>
                   <!-- Date Selection -->
-                  <div class="mb-4">
+                  <div class="mb-6">
                     <label class="block text-sm font-medium mb-2">Date</label>
                     <UiInput
                       v-model="selectedDate"
                       type="date"
                       :min="today"
+                      class="w-full"
                     />
                   </div>
 
                   <!-- Time Slots -->
                   <div class="mb-6">
-                    <label class="block text-sm font-medium mb-2">Créneaux disponibles</label>
-                    <div v-if="loadingSlots" class="text-center py-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="block text-sm font-medium">Créneaux disponibles</label>
+                      <UiButton
+                        variant="ghost"
+                        size="sm"
+                        @click="toggleSlotsView"
+                        class="text-xs"
+                      >
+                        {{ slotsViewMode === 'grouped' ? 'Vue compacte' : 'Vue par terrain' }}
+                      </UiButton>
+                    </div>
+                    <div v-if="loadingSlotsBooking" class="text-center py-4">
                       <Loader2 class="h-6 w-6 animate-spin mx-auto text-primary" />
                     </div>
-                    <div v-else-if="availableSlots.length === 0" class="text-center py-4 text-muted-foreground">
+                    <div v-else-if="availableSlotsBooking.length === 0" class="text-center py-4 text-muted-foreground">
                       Aucun créneau disponible pour cette date
                     </div>
-                    <div v-else class="grid grid-cols-2 gap-2">
-                      <UiButton
-                        v-for="slot in availableSlots"
-                        :key="`${slot.court_id}-${slot.start_time}`"
-                        variant="outline"
-                        size="sm"
-                        class="justify-start"
-                        @click="selectSlot(slot)"
-                      >
-                        <div class="text-left">
-                          <div class="font-medium">{{ slot.start_time.slice(0, 5) }}</div>
-                          <div class="text-xs text-muted-foreground">{{ slot.final_price }}€</div>
+                    <div v-else>
+                      <!-- Grouped view by court -->
+                      <div v-if="slotsViewMode === 'grouped'">
+                        <div v-for="court in availableCourtSlots" :key="court.courtId" class="mb-4 last:mb-0">
+                          <div class="flex items-center justify-between mb-2">
+                            <div class="text-sm font-medium text-muted-foreground">
+                              {{ court.courtName }}
+                            </div>
+                            <div class="text-xs text-muted-foreground capitalize">
+                              {{ court.slots[0]?.surface_type?.replace('_', ' ') }}
+                            </div>
+                          </div>
+                          <div class="grid grid-cols-3 gap-2">
+                            <UiButton
+                              v-for="slot in court.slots"
+                              :key="`${slot.court_id}-${slot.start_time}`"
+                              :variant="selectedSlotBooking?.id === slot.id ? 'default' : 'outline'"
+                              size="sm"
+                              class="justify-center h-12"
+                              @click="selectSlotBooking(slot)"
+                            >
+                              <div class="text-center">
+                                <div class="font-medium text-xs">{{ slot.start_time.slice(0, 5) }}</div>
+                                <div class="text-xs opacity-75">{{ slot.final_price }}€</div>
+                              </div>
+                            </UiButton>
+                          </div>
                         </div>
-                      </UiButton>
+                      </div>
+                      
+                      <!-- Compact view - all slots together -->
+                      <div v-else class="grid grid-cols-2 gap-2">
+                        <UiButton
+                          v-for="slot in sortedSlotsForCompactView"
+                          :key="`${slot.court_id}-${slot.start_time}`"
+                          :variant="selectedSlotBooking?.id === slot.id ? 'default' : 'outline'"
+                          size="sm"
+                          class="justify-start h-12"
+                          @click="selectSlotBooking(slot)"
+                        >
+                          <div class="text-left">
+                            <div class="font-medium text-xs">{{ slot.start_time.slice(0, 5) }}</div>
+                            <div class="text-xs opacity-75">{{ slot.court_name.slice(0, 8) }} • {{ slot.final_price }}€</div>
+                          </div>
+                        </UiButton>
+                      </div>
                     </div>
                   </div>
 
                   <!-- Selected Slot -->
-                  <div v-if="selectedSlot" class="mb-4 p-3 bg-primary/10 rounded-lg">
+                  <div v-if="selectedSlotBooking" class="mb-4 p-3 bg-primary/10 rounded-lg">
                     <div class="text-sm font-medium text-primary">Créneau sélectionné</div>
                     <div class="text-sm">
-                      {{ formatDate(selectedDate) }} à {{ selectedSlot.start_time.slice(0, 5) }}
+                      {{ formatDate(selectedDate) }} à {{ selectedSlotBooking.start_time.slice(0, 5) }}
                     </div>
-                    <div class="text-sm font-medium">{{ selectedSlot.final_price }}€</div>
+                    <div class="text-sm">
+                      Terrain: {{ selectedSlotBooking.court_name }}
+                    </div>
+                    <div class="text-sm font-medium">{{ selectedSlotBooking.final_price }}€</div>
                   </div>
 
                   <!-- Book Button -->
                   <UiButton 
                     class="w-full" 
-                    :disabled="!selectedSlot || !user"
+                    :disabled="!selectedSlotBooking || !user"
                     @click="proceedToBooking"
                   >
                     {{ !user ? 'Connectez-vous pour réserver' : 'Réserver ce créneau' }}
@@ -320,18 +366,57 @@ useHead({
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 
+// Booking composable
+const {
+  availableSlots: availableSlotsBooking,
+  selectedSlot: selectedSlotBooking,
+  loadingSlots: loadingSlotsBooking,
+  getAvailableSlots,
+  selectSlot: selectSlotBooking,
+  clearSelectedSlot
+} = useBooking()
+
 // Reactive data
 const loading = ref(true)
-const loadingSlots = ref(false)
 const center = ref<any>(null)
 const courts = ref<any[]>([])
 const selectedDate = ref('')
-const availableSlots = ref<any[]>([])
-const selectedSlot = ref<any>(null)
+const slotsViewMode = ref<'grouped' | 'compact'>('grouped')
 
 // Computed
 const today = computed(() => {
   return new Date().toISOString().split('T')[0]
+})
+
+const availableCourtSlots = computed(() => {
+  if (!availableSlotsBooking.value.length) return []
+  
+  // Group slots by court
+  const courtGroups = availableSlotsBooking.value.reduce((groups: any, slot: any) => {
+    const courtId = slot.court_id
+    if (!groups[courtId]) {
+      groups[courtId] = {
+        courtId,
+        courtName: slot.court_name,
+        slots: []
+      }
+    }
+    groups[courtId].slots.push(slot)
+    return groups
+  }, {})
+  
+  // Sort slots within each court by time
+  Object.values(courtGroups).forEach((group: any) => {
+    group.slots.sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
+  })
+  
+  return Object.values(courtGroups)
+})
+
+const sortedSlotsForCompactView = computed(() => {
+  return [...availableSlotsBooking.value].sort((a: any, b: any) => 
+    a.start_time.localeCompare(b.start_time)
+  )
 })
 
 // Methods
@@ -380,61 +465,25 @@ const fetchCenter = async () => {
 const fetchAvailableSlots = async () => {
   if (!selectedDate.value || !center.value) return
   
-  loadingSlots.value = true
-  
-  try {
-    const { data, error } = await supabase.rpc('get_available_courts', {
-      p_center_id: centerId,
-      p_booking_date: selectedDate.value,
-      p_start_time: '08:00:00',
-      p_end_time: '22:00:00'
-    })
-    
-    if (error) throw error
-    
-    // Transform data to time slots
-    const slots: any[] = []
-    const timeSlots = ['08:00', '09:30', '11:00', '12:30', '14:00', '15:30', '17:00', '18:30', '20:00', '21:30']
-    
-    data?.forEach((court: any) => {
-      timeSlots.forEach(time => {
-        slots.push({
-          court_id: court.court_id,
-          court_name: court.court_name,
-          start_time: time + ':00',
-          end_time: (parseInt(time.split(':')[0]) + 1) + ':30:00',
-          final_price: court.calculated_price || court.base_price,
-          surface_type: court.surface_type
-        })
-      })
-    })
-    
-    availableSlots.value = slots
-    
-  } catch (error) {
-    console.error('Error fetching slots:', error)
-    availableSlots.value = []
-  } finally {
-    loadingSlots.value = false
-  }
+  await getAvailableSlots(centerId, selectedDate.value)
 }
 
-const selectSlot = (slot: any) => {
-  selectedSlot.value = slot
+const toggleSlotsView = () => {
+  slotsViewMode.value = slotsViewMode.value === 'grouped' ? 'compact' : 'grouped'
 }
 
 const proceedToBooking = () => {
-  if (!selectedSlot.value || !user.value) return
+  if (!selectedSlotBooking.value || !user.value) return
   
   // Navigate to booking page with selected slot
   navigateTo({
     path: '/booking',
     query: {
       center: centerId,
-      court: selectedSlot.value.court_id,
+      court: selectedSlotBooking.value.court_id,
       date: selectedDate.value,
-      time: selectedSlot.value.start_time,
-      price: selectedSlot.value.final_price
+      time: selectedSlotBooking.value.start_time,
+      price: selectedSlotBooking.value.final_price
     }
   })
 }
