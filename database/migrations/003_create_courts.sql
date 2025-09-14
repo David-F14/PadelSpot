@@ -204,11 +204,11 @@ BEGIN
   -- Check for overlapping bookings
   SELECT COUNT(*) INTO booking_count
   FROM public.bookings
-  WHERE court_id = is_court_available.court_id
-    AND booking_date = is_court_available.booking_date
+  WHERE bookings.court_id = is_court_available.court_id
+    AND bookings.booking_date = is_court_available.booking_date
     AND status NOT IN ('cancelled', 'no_show')
     AND (
-      (start_time < is_court_available.end_time AND end_time > is_court_available.start_time)
+      (bookings.start_time < is_court_available.end_time AND bookings.end_time > is_court_available.start_time)
     );
   
   RETURN booking_count = 0;
