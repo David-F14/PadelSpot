@@ -17,6 +17,10 @@
             <UiButton v-if="!user" variant="outline" @click="navigateTo('/auth/login')">
               Connexion
             </UiButton>
+            <UiButton v-if="user && isManager" variant="outline" @click="navigateTo('/dashboard')">
+              <LayoutDashboard class="mr-2 h-4 w-4" />
+              Dashboard
+            </UiButton>
             <UiButton v-if="user" variant="outline" @click="handleLogout">
               Déconnexion
             </UiButton>
@@ -350,7 +354,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { 
   ArrowLeft, MapPin, Star, Calendar, Phone, Mail, ExternalLink,
-  Lightbulb, Thermometer, Loader2
+  Lightbulb, Thermometer, Loader2, LayoutDashboard
 } from 'lucide-vue-next'
 
 // Get route params
@@ -365,6 +369,9 @@ useHead({
 // Auth
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
+
+// Manager status
+const { isManager } = useManager()
 
 // Booking composable
 const {
@@ -520,8 +527,8 @@ const openGallery = (index: number) => {
 }
 
 const handleLogout = async () => {
-  await supabase.auth.signOut()
-  navigateTo('/')
+  const { signOut } = useAuth()
+  await signOut()
 }
 
 // Watchers

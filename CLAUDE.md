@@ -152,8 +152,8 @@ NUXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### Phase 3 - Fonctionnalités core
 - [x] 6. Implémenter la recherche géolocalisée de centres
-- [ ] 7. Développer l'interface de sélection de créneaux
-- [ ] 8. Développer le dashboard Gérant
+- [x] 7. Développer l'interface de sélection de créneaux
+- [x] 8. Développer le dashboard Gérant
 
 ### Phase 4 - Paiements et finalisation
 - [ ] 9. Intégrer Stripe pour les paiements

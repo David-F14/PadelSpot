@@ -245,8 +245,8 @@ const searchCenters = () => {
 }
 
 const handleLogout = async () => {
-  await supabase.auth.signOut()
-  navigateTo('/')
+  const { signOut } = useAuth()
+  await signOut()
 }
 
 // Initialize

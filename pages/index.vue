@@ -20,6 +20,10 @@
             <UiButton v-if="!user" @click="navigateTo('/auth/register')">
               S'inscrire
             </UiButton>
+            <UiButton v-if="user && isManager" variant="outline" @click="navigateTo('/dashboard')">
+              <LayoutDashboard class="mr-2 h-4 w-4" />
+              Dashboard
+            </UiButton>
             <UiButton v-if="user" variant="outline" @click="handleLogout">
               Déconnexion
             </UiButton>
@@ -345,7 +349,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { MapPin, Search, X, Grid, List, Star } from 'lucide-vue-next'
+import { MapPin, Search, X, Grid, List, Star, LayoutDashboard } from 'lucide-vue-next'
 
 // SEO
 useHead({
@@ -391,6 +395,9 @@ const {
   formatDate,
   initialize
 } = useCenters()
+
+// Manager status
+const { isManager } = useManager()
 
 // Get route params
 const route = useRoute()

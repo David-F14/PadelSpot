@@ -97,7 +97,7 @@ export const useAuth = () => {
       profile.value = null
       
       // Redirect to home
-      await navigateTo('/')
+      await navigateTo('/auth/login')
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erreur lors de la déconnexion'
       throw err
