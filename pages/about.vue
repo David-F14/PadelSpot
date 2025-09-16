@@ -21,10 +21,18 @@
               </UiButton>
             </template>
             <template v-else>
+              <UiButton v-if="isManager" variant="outline" @click="navigateTo('/dashboard')">
+                <LayoutDashboard class="mr-2 h-4 w-4" />
+                Dashboard
+              </UiButton>
+              <UiButton v-if="isPlayer && !isManager" variant="outline" @click="navigateTo('/dashboard/player')">
+                <Calendar class="mr-2 h-4 w-4" />
+                Mes réservations
+              </UiButton>
               <UiButton variant="outline" @click="handleLogout">
                 Déconnexion
               </UiButton>
-              <UiButton @click="navigateTo('/centers')">
+              <UiButton @click="navigateTo('/')">
                 Réserver
               </UiButton>
             </template>
@@ -192,11 +200,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MapPin, Search, Clock, CreditCard, Star } from 'lucide-vue-next'
+import { MapPin, Search, Clock, CreditCard, Star, LayoutDashboard, Calendar } from 'lucide-vue-next'
 
 // Auth
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
+
+// User status
+const { isManager, isPlayer } = useUser()
 
 // SEO
 useHead({

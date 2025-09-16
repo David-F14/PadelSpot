@@ -5,7 +5,7 @@
       <div class="container mx-auto px-4 py-4">
         <nav class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <UiButton variant="ghost" size="sm" @click="navigateTo('/dashboard')">
+            <UiButton variant="ghost" size="sm" @click="navigateTo('/dashboard/manager')">
               <ArrowLeft class="mr-2 h-4 w-4" />
               Dashboard
             </UiButton>

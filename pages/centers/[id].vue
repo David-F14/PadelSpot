@@ -21,6 +21,10 @@
               <LayoutDashboard class="mr-2 h-4 w-4" />
               Dashboard
             </UiButton>
+            <UiButton v-if="user && isPlayer && !isManager" variant="outline" @click="navigateTo('/dashboard/player')">
+              <Calendar class="mr-2 h-4 w-4" />
+              Mes réservations
+            </UiButton>
             <UiButton v-if="user" variant="outline" @click="handleLogout">
               Déconnexion
             </UiButton>
@@ -42,9 +46,6 @@
       <p class="text-muted-foreground mb-4">
         Le centre que vous recherchez n'existe pas ou n'est plus disponible.
       </p>
-      <UiButton @click="navigateTo('/')">
-        Retour à l'accueil
-      </UiButton>
     </div>
 
     <!-- Center Details -->
@@ -370,8 +371,8 @@ useHead({
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 
-// Manager status
-const { isManager } = useManager()
+// User status
+const { isManager, isPlayer } = useUser()
 
 // Booking composable
 const {

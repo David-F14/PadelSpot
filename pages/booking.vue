@@ -119,19 +119,6 @@
                   </select>
                 </div>
 
-                <!-- Player Names -->
-                <div>
-                  <label class="block text-sm font-medium mb-2">Nom des joueurs</label>
-                  <div class="space-y-3">
-                    <UiInput
-                      v-for="i in parseInt(bookingDetails.playerCount)"
-                      :key="i"
-                      v-model="playerNames[i-1]"
-                      :placeholder="`Joueur ${i}`"
-                      required
-                    />
-                  </div>
-                </div>
 
                 <!-- Special Requests -->
                 <div>
@@ -418,7 +405,6 @@ const bookingDetails = ref({
 const center = ref<any>(null)
 const court = ref<any>(null)
 
-const playerNames = ref<string[]>(['', '', '', ''])
 const acceptTerms = ref(false)
 const paymentMethod = ref('card')
 
@@ -438,8 +424,7 @@ const bookingId = ref('')
 
 // Computed
 const canProceedToPayment = computed(() => {
-  return acceptTerms.value && 
-         playerNames.value.slice(0, parseInt(bookingDetails.value.playerCount)).every(name => name.trim())
+  return acceptTerms.value
 })
 
 const equipmentTotal = computed(() => {
@@ -527,7 +512,7 @@ const processPayment = async () => {
         start_time: bookingDetails.value.time,
         end_time: getEndTime(bookingDetails.value.time) + ':00',
         player_count: parseInt(bookingDetails.value.playerCount),
-        players: playerNames.value.slice(0, parseInt(bookingDetails.value.playerCount)).map(name => ({ name })),
+        players: null,
         base_price: bookingDetails.value.price,
         total_price: totalPrice.value,
         special_requests: bookingDetails.value.specialRequests,
