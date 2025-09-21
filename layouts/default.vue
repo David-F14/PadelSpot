@@ -25,23 +25,14 @@
             </template>
 
             <template v-else>
-              <!-- Dashboard button for managers -->
-              <UiButton v-if="isManager" variant="outline" @click="navigateTo('/dashboard')">
-                <LayoutDashboard class="mr-2 h-4 w-4" />
-                Dashboard
-              </UiButton>
-
-              <!-- Reservations button for players -->
-              <UiButton v-if="isPlayer && !isManager" variant="outline" @click="navigateTo('/dashboard/player')">
+              <!-- Book button on non-booking pages -->
+              <UiButton v-if="!isBookingPage" @click="navigateTo('/')">
                 <Calendar class="mr-2 h-4 w-4" />
-                Mes réservations
+                Réserver
               </UiButton>
 
-              <!-- Logout button - single place in the app -->
-              <UiButton variant="outline" @click="handleLogout">
-                <LogOut class="mr-2 h-4 w-4" />
-                Déconnexion
-              </UiButton>
+              <!-- User menu dropdown -->
+              <UserMenu />
             </template>
           </div>
         </nav>
@@ -55,14 +46,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { LayoutDashboard, Calendar, LogOut } from 'lucide-vue-next'
+import { Calendar } from 'lucide-vue-next'
 
 // Auth
 const user = useSupabaseUser()
-const { signOut } = useAuth()
-
-// User status
-const { isManager, isPlayer } = useUser()
 
 // Route
 const route = useRoute()
@@ -71,9 +58,4 @@ const route = useRoute()
 const isBookingPage = computed(() => {
   return route.path === '/booking' || route.path.startsWith('/centers/')
 })
-
-// Logout handler
-const handleLogout = async () => {
-  await signOut()
-}
 </script>
