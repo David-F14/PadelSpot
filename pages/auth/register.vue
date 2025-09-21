@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-background flex">
+  <div class="flex w-full max-w-6xl">
     <!-- Left Side - Register Form -->
     <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div class="max-w-md w-full space-y-8">
@@ -254,7 +254,7 @@
             </NuxtLink>
           </p>
         </div>
-      </div>
+        </div>
     </div>
 
     <!-- Right Side - Hero Image -->
@@ -293,12 +293,14 @@
 </template>
 
 <script setup lang="ts">
+
 import { ref } from 'vue'
 import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 
-// Redirect authenticated users away from register
+// Define layout
 definePageMeta({
-  auth: false
+  layout: 'auth',
+  auth: false // This page is for non-authenticated users
 })
 
 // SEO

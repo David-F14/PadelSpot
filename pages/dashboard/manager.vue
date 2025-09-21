@@ -1,33 +1,5 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b border-border bg-card">
-      <div class="container mx-auto px-4 py-4">
-        <nav class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <NuxtLink to="/" class="flex items-center space-x-2">
-              <div class="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-                <span class="text-primary-foreground font-bold text-lg">P</span>
-              </div>
-              <h1 class="text-xl font-bold text-foreground">PadelSpot</h1>
-            </NuxtLink>
-            
-            <div class="text-sm text-muted-foreground">
-              Dashboard Gérant
-            </div>
-          </div>
-          
-          <div class="flex items-center space-x-4">
-            <div v-if="user" class="text-sm">
-              {{ user.email }}
-            </div>
-            <UiButton variant="outline" size="sm" @click="handleLogout">
-              Déconnexion
-            </UiButton>
-          </div>
-        </nav>
-      </div>
-    </header>
+  <div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -211,7 +183,8 @@ import {
 
 // Middleware to protect the route
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
+  layout: 'default'
 })
 
 // SEO
@@ -384,10 +357,6 @@ const getStatusText = (status: string) => {
   }
 }
 
-const handleLogout = async () => {
-  const { signOut } = useAuth()
-  await signOut()
-}
 
 // Watchers
 watch(selectedCenterId, (newCenterId) => {

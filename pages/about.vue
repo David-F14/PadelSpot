@@ -1,45 +1,5 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <!-- Navigation Header -->
-    <header class="border-b border-border">
-      <div class="container mx-auto px-4 py-4">
-        <nav class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <div class="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-              <span class="text-primary-foreground font-bold text-lg">P</span>
-            </div>
-            <h1 class="text-xl font-bold text-foreground">PadelSpot</h1>
-          </div>
-          
-          <div class="flex items-center space-x-4">
-            <template v-if="!user">
-              <UiButton variant="outline" @click="navigateTo('/auth/login')">
-                Connexion
-              </UiButton>
-              <UiButton @click="navigateTo('/auth/register')">
-                S'inscrire
-              </UiButton>
-            </template>
-            <template v-else>
-              <UiButton v-if="isManager" variant="outline" @click="navigateTo('/dashboard')">
-                <LayoutDashboard class="mr-2 h-4 w-4" />
-                Dashboard
-              </UiButton>
-              <UiButton v-if="isPlayer && !isManager" variant="outline" @click="navigateTo('/dashboard/player')">
-                <Calendar class="mr-2 h-4 w-4" />
-                Mes réservations
-              </UiButton>
-              <UiButton variant="outline" @click="handleLogout">
-                Déconnexion
-              </UiButton>
-              <UiButton @click="navigateTo('/')">
-                Réserver
-              </UiButton>
-            </template>
-          </div>
-        </nav>
-      </div>
-    </header>
+  <div>
 
     <!-- Hero Section -->
     <section class="py-16">
@@ -255,10 +215,6 @@ const searchCenters = () => {
   }
 }
 
-const handleLogout = async () => {
-  const { signOut } = useAuth()
-  await signOut()
-}
 
 // Initialize
 onMounted(() => {
