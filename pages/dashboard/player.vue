@@ -183,7 +183,6 @@ import {
 
 // Middleware to protect the route
 definePageMeta({
-  middleware: 'auth',
   layout: 'default'
 })
 

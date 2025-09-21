@@ -368,10 +368,7 @@ import {
   ArrowLeft, ArrowRight, Lock, Loader2, CreditCard, Check
 } from 'lucide-vue-next'
 
-// Middleware to protect the route
-definePageMeta({
-  middleware: 'auth'
-})
+// Page automatically protected by global auth middleware
 
 // SEO
 useHead({
