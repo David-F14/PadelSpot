@@ -25,12 +25,6 @@
             </template>
 
             <template v-else>
-              <!-- Book button on non-booking pages -->
-              <UiButton v-if="!isBookingPage" @click="navigateTo('/')">
-                <Calendar class="mr-2 h-4 w-4" />
-                Réserver
-              </UiButton>
-
               <!-- User menu dropdown -->
               <UserMenu />
             </template>
@@ -45,17 +39,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Calendar } from 'lucide-vue-next'
-
 // Auth
 const user = useSupabaseUser()
-
-// Route
-const route = useRoute()
-
-// Check if we're on booking page to show/hide booking button
-const isBookingPage = computed(() => {
-  return route.path === '/booking' || route.path.startsWith('/centers/')
-})
 </script>

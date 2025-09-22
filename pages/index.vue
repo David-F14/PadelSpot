@@ -11,9 +11,9 @@
           
           <!-- Search Form -->
           <div class="bg-card rounded-lg p-6 shadow-sm">
-            <div class="grid md:grid-cols-3 gap-4">
+            <div class="grid md:grid-cols-4 gap-4">
               <!-- Location Search -->
-              <div>
+              <div class="md:col-span-3">
                 <label class="block text-sm font-medium text-foreground mb-2">
                   Où ?
                 </label>
@@ -21,20 +21,33 @@
                   <UiInput
                     v-model="searchQuery"
                     placeholder="Ville ou code postal"
-                    class="pl-10 pr-10"
+                    class="pl-10 pr-20"
+                    @input="onSearchInput"
                     @keyup.enter="searchCenters"
                   />
-                  <MapPin class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <button
-                    v-if="searchQuery"
-                    @click="clearLocation"
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                    @click="getUserLocation"
+                    :disabled="gettingLocation"
+                    class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                    :class="{ 'animate-pulse text-primary': gettingLocation }"
+                    title="Utiliser ma position"
                   >
-                    <X class="h-4 w-4" />
+                    <MapPin class="h-4 w-4" />
                   </button>
+
+                  <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                    <button
+                      v-if="searchQuery"
+                      @click="clearLocation"
+                      class="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                      title="Effacer"
+                    >
+                      <X class="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              
+
               <!-- Date -->
               <div>
                 <label class="block text-sm font-medium text-foreground mb-2">
@@ -46,42 +59,10 @@
                   :min="today"
                 />
               </div>
-              
-              <!-- Time -->
-              <div>
-                <label class="block text-sm font-medium text-foreground mb-2">
-                  Heure
-                </label>
-                <select 
-                  v-model="selectedTime"
-                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="">Toute la journée</option>
-                  <option v-for="time in timeOptions" :key="time" :value="time">
-                    {{ time }}
-                  </option>
-                </select>
-              </div>
             </div>
-            
-            <div class="flex flex-col sm:flex-row gap-4 mt-6">
-              <UiButton @click="searchCenters" class="flex-1">
-                <Search class="mr-2 h-4 w-4" />
-                Rechercher
-              </UiButton>
-              
-              <UiButton 
-                variant="outline" 
-                @click="getUserLocation" 
-                :disabled="gettingLocation"
-              >
-                <MapPin class="mr-2 h-4 w-4" />
-                {{ gettingLocation ? 'Localisation en cours...' : 'Ma position' }}
-              </UiButton>
-            </div>
-            
+
             <!-- Location permissions message -->
-            <p v-if="locationError" class="text-sm text-destructive mt-2">
+            <p v-if="locationError" class="text-sm text-destructive mt-4">
               {{ locationError }}
             </p>
           </div>
@@ -285,7 +266,7 @@
               <!-- Availability Info -->
               <div class="flex items-center justify-between mb-1">
                 <div class="text-sm text-green-600 font-medium">
-                  {{ selectedDate && selectedTime ? '3 créneaux disponibles' : '8 terrains disponibles' }}
+                  {{ selectedDate ? '3 créneaux disponibles' : '8 terrains disponibles' }}
                 </div>
                 <div class="text-xs text-muted-foreground">
                   {{ selectedDate ? formatDate(selectedDate) : 'Aujourd\'hui' }}
@@ -337,7 +318,6 @@ const {
   // Filters
   searchQuery,
   selectedDate,
-  selectedTime,
   surfaceFilter,
   courtTypeFilter,
   priceFilter,
@@ -379,6 +359,10 @@ let searchTimer: NodeJS.Timeout | null = null
 const isInitialized = ref(false)
 
 // Local methods
+const onSearchInput = () => {
+  // The search is automatically triggered by the searchQuery watcher with debounce
+  // This function is here for the @input event but the actual logic is in the watcher
+}
 
 // Watchers
 watch(searchQuery, (newValue, oldValue) => {
