@@ -54,7 +54,6 @@ export const useCenters = () => {
   // Search filters
   const searchQuery = ref('')
   const selectedDate = ref('')
-  const selectedTime = ref('')
   const surfaceFilter = ref('')
   const courtTypeFilter = ref('')
   const priceFilter = ref('')
@@ -308,12 +307,10 @@ export const useCenters = () => {
     // Filters
     searchQuery,
     selectedDate,
-    selectedTime,
     surfaceFilter,
     courtTypeFilter,
     priceFilter,
-    sortBy,
-    
+
     // Location
     userLocation: readonly(userLocation),
     gettingLocation: readonly(gettingLocation),

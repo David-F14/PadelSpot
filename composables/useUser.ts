@@ -24,7 +24,7 @@ export const useUser = () => {
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .select('role')
-        .eq('user_id', user.value.id)
+        .eq('id', user.value.id)
         .single()
 
       if (profileError) throw profileError

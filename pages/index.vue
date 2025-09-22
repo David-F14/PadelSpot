@@ -53,11 +53,22 @@
                 <label class="block text-sm font-medium text-foreground mb-2">
                   Date
                 </label>
-                <UiInput
-                  v-model="selectedDate"
-                  type="date"
-                  :min="today"
-                />
+                <div class="relative">
+                  <UiInput
+                    ref="dateInput"
+                    v-model="selectedDate"
+                    type="date"
+                    :min="today"
+                    class="pr-10"
+                  />
+                  <button
+                    @click="openDatePicker"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                    title="Choisir une date"
+                  >
+                    <Calendar class="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -109,17 +120,6 @@
             <option value="20-30">20€ - 30€</option>
             <option value="30-40">30€ - 40€</option>
             <option value="40+">40€+</option>
-          </select>
-          
-          <!-- Sort -->
-          <select 
-            v-model="sortBy"
-            class="text-sm rounded-md border border-input bg-background px-3 py-1 min-w-[100px]"
-          >
-            <option value="distance">Distance</option>
-            <option value="rating">Note</option>
-            <option value="price_low">Prix croissant</option>
-            <option value="price_high">Prix décroissant</option>
           </select>
           
           <UiButton variant="ghost" size="sm" @click="clearFilters">
@@ -321,8 +321,7 @@ const {
   surfaceFilter,
   courtTypeFilter,
   priceFilter,
-  sortBy,
-  
+
   // Location
   gettingLocation,
   locationError,
@@ -358,10 +357,21 @@ const viewMode = ref('grid')
 let searchTimer: NodeJS.Timeout | null = null
 const isInitialized = ref(false)
 
+// Date input reference
+const dateInput = ref<HTMLInputElement | null>(null)
+
 // Local methods
 const onSearchInput = () => {
   // The search is automatically triggered by the searchQuery watcher with debounce
   // This function is here for the @input event but the actual logic is in the watcher
+}
+
+const openDatePicker = () => {
+  // Focus on the date input to trigger the native date picker
+  if (dateInput.value) {
+    dateInput.value?.focus()
+    dateInput.value.showPicker?.()
+  }
 }
 
 // Watchers
