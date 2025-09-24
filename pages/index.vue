@@ -298,7 +298,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { MapPin, Search, X, Grid, List, Star, LayoutDashboard, Calendar } from 'lucide-vue-next'
 
 // SEO
@@ -368,10 +368,30 @@ const onSearchInput = () => {
 
 const openDatePicker = () => {
   // Focus on the date input to trigger the native date picker
-  if (dateInput.value) {
-    dateInput.value?.focus()
-    dateInput.value.showPicker?.()
-  }
+  nextTick(() => {
+    if (dateInput.value) {
+      // Try to access the underlying input element
+      let inputElement = dateInput.value
+
+      // If it's a Vue component, try to get the underlying DOM element
+      if (dateInput.value.$el) {
+        inputElement = dateInput.value.$el
+      }
+
+      // If it's still not a DOM element, try to find the input within
+      if (!inputElement.focus && inputElement.querySelector) {
+        inputElement = inputElement.querySelector('input[type="date"]')
+      }
+
+      // Now try to focus and show picker
+      if (inputElement && typeof inputElement.focus === 'function') {
+        inputElement.focus()
+        if (inputElement.showPicker) {
+          inputElement.showPicker()
+        }
+      }
+    }
+  })
 }
 
 // Watchers
