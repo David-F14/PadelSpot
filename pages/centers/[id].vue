@@ -213,26 +213,80 @@
                   <!-- Date Selection -->
                   <div class="mb-6">
                     <label class="block text-sm font-medium mb-2">Date</label>
-                    <UiInput
-                      v-model="selectedDate"
-                      type="date"
-                      :min="today"
-                      class="w-full"
-                    />
+                    <div class="relative">
+                      <UiInput
+                        v-model="selectedDate"
+                        type="date"
+                        :min="today"
+                        class="w-full pr-10"
+                        @click="showCalendar = true"
+                        ref="dateInput"
+                      />
+                      <Calendar
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                        @click="toggleCalendar"
+                      />
+
+                      <!-- Custom Calendar Dropdown -->
+                      <div v-if="showCalendar" class="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50">
+                        <div class="p-4">
+                          <div class="flex items-center justify-between mb-4">
+                            <button @click="previousMonth" class="p-1 rounded hover:bg-muted">
+                              <ChevronLeft class="h-4 w-4" />
+                            </button>
+                            <h3 class="font-medium">{{ calendarTitle }}</h3>
+                            <button @click="nextMonth" class="p-1 rounded hover:bg-muted">
+                              <ChevronRight class="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+                            <div class="font-medium text-muted-foreground p-2">Di</div>
+                            <div class="font-medium text-muted-foreground p-2">Lu</div>
+                            <div class="font-medium text-muted-foreground p-2">Ma</div>
+                            <div class="font-medium text-muted-foreground p-2">Me</div>
+                            <div class="font-medium text-muted-foreground p-2">Je</div>
+                            <div class="font-medium text-muted-foreground p-2">Ve</div>
+                            <div class="font-medium text-muted-foreground p-2">Sa</div>
+                          </div>
+
+                          <div class="grid grid-cols-7 gap-1">
+                            <button
+                              v-for="day in calendarDays"
+                              :key="day.date"
+                              :class="[
+                                'p-2 text-xs rounded hover:bg-muted transition-colors',
+                                {
+                                  'text-muted-foreground': !day.inCurrentMonth,
+                                  'bg-primary text-primary-foreground': day.date === selectedDate,
+                                  'font-medium': day.isToday,
+                                  'opacity-50 cursor-not-allowed': day.disabled
+                                }
+                              ]"
+                              :disabled="day.disabled"
+                              @click="selectDate(day.date)"
+                            >
+                              {{ day.day }}
+                            </button>
+                          </div>
+
+                          <div class="mt-4 flex justify-end space-x-2">
+                            <UiButton variant="outline" size="sm" @click="showCalendar = false">
+                              Fermer
+                            </UiButton>
+                            <UiButton size="sm" @click="selectToday">
+                              Aujourd'hui
+                            </UiButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Time Slots -->
                   <div class="mb-6">
-                    <div class="flex items-center justify-between mb-2">
+                    <div class="mb-2">
                       <label class="block text-sm font-medium">Créneaux disponibles</label>
-                      <UiButton
-                        variant="ghost"
-                        size="sm"
-                        @click="toggleSlotsView"
-                        class="text-xs"
-                      >
-                        {{ slotsViewMode === 'grouped' ? 'Vue compacte' : 'Vue par terrain' }}
-                      </UiButton>
                     </div>
                     <div v-if="loadingSlotsBooking" class="text-center py-4">
                       <Loader2 class="h-6 w-6 animate-spin mx-auto text-primary" />
@@ -241,48 +295,19 @@
                       Aucun créneau disponible pour cette date
                     </div>
                     <div v-else>
-                      <!-- Grouped view by court -->
-                      <div v-if="slotsViewMode === 'grouped'">
-                        <div v-for="court in availableCourtSlots" :key="court.courtId" class="mb-4 last:mb-0">
-                          <div class="flex items-center justify-between mb-2">
-                            <div class="text-sm font-medium text-muted-foreground">
-                              {{ court.courtName }}
-                            </div>
-                            <div class="text-xs text-muted-foreground capitalize">
-                              {{ court.slots[0]?.surface_type?.replace('_', ' ') }}
-                            </div>
-                          </div>
-                          <div class="grid grid-cols-3 gap-2">
-                            <UiButton
-                              v-for="slot in court.slots"
-                              :key="`${slot.court_id}-${slot.start_time}`"
-                              :variant="selectedSlotBooking?.id === slot.id ? 'default' : 'outline'"
-                              size="sm"
-                              class="justify-center h-12"
-                              @click="selectSlotBooking(slot)"
-                            >
-                              <div class="text-center">
-                                <div class="font-medium text-xs">{{ slot.start_time.slice(0, 5) }}</div>
-                                <div class="text-xs opacity-75">{{ slot.final_price }}€</div>
-                              </div>
-                            </UiButton>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Compact view - all slots together -->
-                      <div v-else class="grid grid-cols-2 gap-2">
+                      <!-- Simple time slots view - grouped by time only -->
+                      <div class="grid grid-cols-3 gap-2">
                         <UiButton
-                          v-for="slot in sortedSlotsForCompactView"
-                          :key="`${slot.court_id}-${slot.start_time}`"
-                          :variant="selectedSlotBooking?.id === slot.id ? 'default' : 'outline'"
+                          v-for="slot in uniqueTimeSlots"
+                          :key="slot.start_time"
+                          :variant="selectedTimeSlot === slot.start_time ? 'default' : 'outline'"
                           size="sm"
-                          class="justify-start h-12"
-                          @click="selectSlotBooking(slot)"
+                          class="justify-center h-12"
+                          @click="selectTimeSlot(slot)"
                         >
-                          <div class="text-left">
+                          <div class="text-center">
                             <div class="font-medium text-xs">{{ slot.start_time.slice(0, 5) }}</div>
-                            <div class="text-xs opacity-75">{{ slot.court_name.slice(0, 8) }} • {{ slot.final_price }}€</div>
+                            <div class="text-xs opacity-75">{{ slot.final_price }}€</div>
                           </div>
                         </UiButton>
                       </div>
@@ -290,21 +315,18 @@
                   </div>
 
                   <!-- Selected Slot -->
-                  <div v-if="selectedSlotBooking" class="mb-4 p-3 bg-primary/10 rounded-lg">
+                  <div v-if="selectedTimeSlot" class="mb-4 p-3 bg-primary/10 rounded-lg">
                     <div class="text-sm font-medium text-primary">Créneau sélectionné</div>
                     <div class="text-sm">
-                      {{ formatDate(selectedDate) }} à {{ selectedSlotBooking.start_time.slice(0, 5) }}
+                      {{ formatDate(selectedDate) }} à {{ selectedTimeSlot.slice(0, 5) }}
                     </div>
-                    <div class="text-sm">
-                      Terrain: {{ selectedSlotBooking.court_name }}
-                    </div>
-                    <div class="text-sm font-medium">{{ selectedSlotBooking.final_price }}€</div>
+                    <div class="text-sm font-medium">{{ selectedSlotPrice }}€</div>
                   </div>
 
                   <!-- Book Button -->
-                  <UiButton 
-                    class="w-full" 
-                    :disabled="!selectedSlotBooking || !user"
+                  <UiButton
+                    class="w-full"
+                    :disabled="!selectedTimeSlot || !user"
                     @click="proceedToBooking"
                   >
                     {{ !user ? 'Connectez-vous pour réserver' : 'Réserver ce créneau' }}
@@ -320,10 +342,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { 
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import {
   ArrowLeft, MapPin, Star, Calendar, Phone, Mail, ExternalLink,
-  Lightbulb, Thermometer, Loader2, LayoutDashboard
+  Lightbulb, Thermometer, Loader2, LayoutDashboard, ChevronLeft, ChevronRight
 } from 'lucide-vue-next'
 
 // Get route params
@@ -345,10 +367,8 @@ const { isManager, isPlayer } = useUser()
 // Booking composable
 const {
   availableSlots: availableSlotsBooking,
-  selectedSlot: selectedSlotBooking,
   loadingSlots: loadingSlotsBooking,
   getAvailableSlots,
-  selectSlot: selectSlotBooking,
   clearSelectedSlot
 } = useBooking()
 
@@ -357,42 +377,94 @@ const loading = ref(true)
 const center = ref<any>(null)
 const courts = ref<any[]>([])
 const selectedDate = ref('')
-const slotsViewMode = ref<'grouped' | 'compact'>('grouped')
+const selectedTimeSlot = ref<string>('')
+const showCalendar = ref(false)
+const calendarMonth = ref(new Date())
+const dateInput = ref(null)
 
 // Computed
 const today = computed(() => {
   return new Date().toISOString().split('T')[0]
 })
 
-const availableCourtSlots = computed(() => {
+const uniqueTimeSlots = computed(() => {
   if (!availableSlotsBooking.value.length) return []
-  
-  // Group slots by court
-  const courtGroups = availableSlotsBooking.value.reduce((groups: any, slot: any) => {
-    const courtId = slot.court_id
-    if (!groups[courtId]) {
-      groups[courtId] = {
-        courtId,
-        courtName: slot.court_name,
-        slots: []
+
+  // Group slots by time and get the cheapest option for each time
+  const timeGroups = availableSlotsBooking.value.reduce((groups: any, slot: any) => {
+    const timeKey = slot.start_time
+    if (!groups[timeKey] || groups[timeKey].final_price > slot.final_price) {
+      groups[timeKey] = {
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        final_price: slot.final_price,
+        available_courts: 1,
+        slots: [slot]
       }
+    } else if (groups[timeKey].final_price === slot.final_price) {
+      groups[timeKey].available_courts++
+      groups[timeKey].slots.push(slot)
     }
-    groups[courtId].slots.push(slot)
     return groups
   }, {})
-  
-  // Sort slots within each court by time
-  Object.values(courtGroups).forEach((group: any) => {
-    group.slots.sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
-  })
-  
-  return Object.values(courtGroups)
-})
 
-const sortedSlotsForCompactView = computed(() => {
-  return [...availableSlotsBooking.value].sort((a: any, b: any) => 
+  // Convert to array and sort by time
+  return Object.values(timeGroups).sort((a: any, b: any) =>
     a.start_time.localeCompare(b.start_time)
   )
+})
+
+const selectedSlotPrice = computed(() => {
+  const timeSlot = uniqueTimeSlots.value.find((slot: any) => slot.start_time === selectedTimeSlot.value)
+  return timeSlot ? timeSlot.final_price : 0
+})
+
+const calendarTitle = computed(() => {
+  return calendarMonth.value.toLocaleDateString('fr-FR', {
+    month: 'long',
+    year: 'numeric'
+  })
+})
+
+const calendarDays = computed(() => {
+  const year = calendarMonth.value.getFullYear()
+  const month = calendarMonth.value.getMonth()
+
+  // First day of the month
+  const firstDay = new Date(year, month, 1)
+  // Last day of the month
+  const lastDay = new Date(year, month + 1, 0)
+
+  // Start from Sunday of the week containing the first day
+  const startDate = new Date(firstDay)
+  startDate.setDate(startDate.getDate() - firstDay.getDay())
+
+  // End on Saturday of the week containing the last day
+  const endDate = new Date(lastDay)
+  endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()))
+
+  const days = []
+  const currentDate = new Date(startDate)
+  const todayStr = new Date().toISOString().split('T')[0]
+  const minDate = new Date(today.value)
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split('T')[0]
+    const isCurrentMonth = currentDate.getMonth() === month
+    const isDisabled = currentDate < minDate
+
+    days.push({
+      date: dateStr,
+      day: currentDate.getDate(),
+      inCurrentMonth: isCurrentMonth,
+      isToday: dateStr === todayStr,
+      disabled: isDisabled
+    })
+
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  return days
 })
 
 // Methods
@@ -444,22 +516,28 @@ const fetchAvailableSlots = async () => {
   await getAvailableSlots(centerId, selectedDate.value)
 }
 
-const toggleSlotsView = () => {
-  slotsViewMode.value = slotsViewMode.value === 'grouped' ? 'compact' : 'grouped'
+const selectTimeSlot = (timeSlot: any) => {
+  selectedTimeSlot.value = timeSlot.start_time
 }
 
 const proceedToBooking = () => {
-  if (!selectedSlotBooking.value || !user.value) return
-  
+  if (!selectedTimeSlot.value || !user.value) return
+
+  // Find the first available slot for the selected time
+  const timeSlot = uniqueTimeSlots.value.find((slot: any) => slot.start_time === selectedTimeSlot.value)
+  if (!timeSlot || !timeSlot.slots.length) return
+
+  const selectedSlot = timeSlot.slots[0] // Take the first available court for this time
+
   // Navigate to booking page with selected slot
   navigateTo({
     path: '/booking',
     query: {
       center: centerId,
-      court: selectedSlotBooking.value.court_id,
+      court: selectedSlot.court_id,
       date: selectedDate.value,
-      time: selectedSlotBooking.value.start_time,
-      price: selectedSlotBooking.value.final_price
+      time: selectedSlot.start_time,
+      price: selectedSlot.final_price
     }
   })
 }
@@ -495,13 +573,62 @@ const openGallery = (index: number) => {
   console.log('Open gallery at index:', index)
 }
 
+// Calendar methods
+const toggleCalendar = () => {
+  showCalendar.value = !showCalendar.value
+}
+
+const previousMonth = () => {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() - 1, 1)
+}
+
+const nextMonth = () => {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + 1, 1)
+}
+
+const selectDate = (date: string) => {
+  selectedDate.value = date
+  showCalendar.value = false
+}
+
+const selectToday = () => {
+  selectedDate.value = today.value
+  showCalendar.value = false
+}
+
 
 // Watchers
 watch(selectedDate, fetchAvailableSlots)
 
+// Close calendar when clicking outside
+const handleClickOutside = (event: Event) => {
+  const calendarElement = event.target as Element
+  if (showCalendar.value && !calendarElement.closest('.relative')) {
+    showCalendar.value = false
+  }
+}
+
+watch(showCalendar, (newValue) => {
+  if (newValue) {
+    document.addEventListener('click', handleClickOutside)
+  } else {
+    document.removeEventListener('click', handleClickOutside)
+  }
+})
+
 // Initialize
-onMounted(() => {
+onMounted(async () => {
   selectedDate.value = today.value
-  fetchCenter()
+  calendarMonth.value = new Date()
+  await fetchCenter()
+  // Ensure slots are fetched after center is loaded
+  if (center.value) {
+    await fetchAvailableSlots()
+  }
+})
+
+// Cleanup
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>

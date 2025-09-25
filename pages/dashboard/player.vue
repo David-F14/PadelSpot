@@ -43,10 +43,10 @@
           <UiCardContent class="p-6">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-muted-foreground">Total dépensé</p>
-                <p class="text-2xl font-bold text-foreground">{{ totalSpent }}€</p>
+                <p class="text-sm font-medium text-muted-foreground">Matchs joués</p>
+                <p class="text-2xl font-bold text-foreground">{{ matchsPlayed }}</p>
               </div>
-              <Euro class="h-8 w-8 text-green-600" />
+              <Trophy class="h-8 w-8 text-green-600" />
             </div>
           </UiCardContent>
         </UiCard>
@@ -178,7 +178,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-  ArrowLeft, Calendar, Clock, Euro, X, Loader2, Search, MapPin
+  ArrowLeft, Calendar, Clock, Trophy, X, Loader2, Search, MapPin
 } from 'lucide-vue-next'
 
 // Middleware to protect the route
@@ -243,10 +243,11 @@ const nextBooking = computed(() => {
   return upcoming[0] || null
 })
 
-const totalSpent = computed(() => {
-  return Math.round(bookings.value
-    .filter(b => b.payment_status === 'paid')
-    .reduce((sum, b) => sum + b.total_price, 0))
+const matchsPlayed = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return bookings.value
+    .filter(b => b.status === 'confirmed' && b.booking_date < today)
+    .length
 })
 
 // Methods
