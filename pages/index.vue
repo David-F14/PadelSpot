@@ -59,8 +59,10 @@
                     type="date"
                     :min="today"
                     class="pr-10"
-                    @click="showCalendar = true"
+                    @click="openCustomCalendar"
+                    @focus="openCustomCalendar"
                     ref="dateInput"
+                    :readonly="showCalendar"
                   />
                   <Calendar
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
@@ -480,6 +482,11 @@ const calendarDays = computed(() => {
 // Calendar methods
 const toggleCalendar = () => {
   showCalendar.value = !showCalendar.value
+}
+
+const openCustomCalendar = (event: Event) => {
+  event.preventDefault()
+  showCalendar.value = true
 }
 
 const previousMonth = () => {
