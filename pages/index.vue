@@ -55,19 +55,71 @@
                 </label>
                 <div class="relative">
                   <UiInput
-                    ref="dateInput"
                     v-model="selectedDate"
                     type="date"
                     :min="today"
                     class="pr-10"
+                    @click="showCalendar = true"
+                    ref="dateInput"
                   />
-                  <button
-                    @click="openDatePicker"
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                    title="Choisir une date"
-                  >
-                    <Calendar class="h-4 w-4" />
-                  </button>
+                  <Calendar
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    @click="toggleCalendar"
+                  />
+
+                  <!-- Custom Calendar Dropdown -->
+                  <div v-if="showCalendar" class="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50">
+                    <div class="p-4">
+                      <div class="flex items-center justify-between mb-4">
+                        <button @click="previousMonth" class="p-1 rounded hover:bg-muted">
+                          <ChevronLeft class="h-4 w-4" />
+                        </button>
+                        <h3 class="font-medium">{{ calendarTitle }}</h3>
+                        <button @click="nextMonth" class="p-1 rounded hover:bg-muted">
+                          <ChevronRight class="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+                        <div class="font-medium text-muted-foreground p-2">Di</div>
+                        <div class="font-medium text-muted-foreground p-2">Lu</div>
+                        <div class="font-medium text-muted-foreground p-2">Ma</div>
+                        <div class="font-medium text-muted-foreground p-2">Me</div>
+                        <div class="font-medium text-muted-foreground p-2">Je</div>
+                        <div class="font-medium text-muted-foreground p-2">Ve</div>
+                        <div class="font-medium text-muted-foreground p-2">Sa</div>
+                      </div>
+
+                      <div class="grid grid-cols-7 gap-1">
+                        <button
+                          v-for="day in calendarDays"
+                          :key="day.date"
+                          :class="[
+                            'p-2 text-xs rounded hover:bg-muted transition-colors',
+                            {
+                              'text-muted-foreground': !day.inCurrentMonth,
+                              'bg-primary text-primary-foreground': day.date === selectedDate,
+                              'font-medium': day.isToday,
+                              'opacity-50 cursor-not-allowed': day.disabled
+                            }
+                          ]"
+                          :disabled="day.disabled"
+                          @click="selectDate(day.date)"
+                        >
+                          {{ day.day }}
+                        </button>
+                      </div>
+
+                      <div class="mt-4 flex justify-end space-x-2">
+                        <UiButton variant="outline" size="sm" @click="showCalendar = false">
+                          Fermer
+                        </UiButton>
+                        <UiButton size="sm" @click="selectToday">
+                          Aujourd'hui
+                        </UiButton>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -298,8 +350,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { MapPin, Search, X, Grid, List, Star, LayoutDashboard, Calendar } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { MapPin, Search, X, Grid, List, Star, LayoutDashboard, Calendar, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 // SEO
 useHead({
@@ -352,6 +404,8 @@ const route = useRoute()
 
 // UI State
 const viewMode = ref('grid')
+const showCalendar = ref(false)
+const calendarMonth = ref(new Date())
 
 // Debounce timer for search
 let searchTimer: NodeJS.Timeout | null = null
@@ -366,54 +420,122 @@ const onSearchInput = () => {
   // This function is here for the @input event but the actual logic is in the watcher
 }
 
-const openDatePicker = () => {
-  // Focus on the date input to trigger the native date picker
-  nextTick(() => {
-    if (dateInput.value) {
-      // Try to access the underlying input element
-      let inputElement = dateInput.value
-
-      // If it's a Vue component, try to get the underlying DOM element
-      if (dateInput.value.$el) {
-        inputElement = dateInput.value.$el
-      }
-
-      // If it's still not a DOM element, try to find the input within
-      if (!inputElement.focus && inputElement.querySelector) {
-        inputElement = inputElement.querySelector('input[type="date"]')
-      }
-
-      // Now try to focus and show picker
-      if (inputElement && typeof inputElement.focus === 'function') {
-        inputElement.focus()
-        if (inputElement.showPicker) {
-          inputElement.showPicker()
-        }
-      }
-    }
+// Calendar computed properties
+const calendarTitle = computed(() => {
+  return calendarMonth.value.toLocaleDateString('fr-FR', {
+    month: 'long',
+    year: 'numeric'
   })
+})
+
+const calendarDays = computed(() => {
+  const year = calendarMonth.value.getFullYear()
+  const month = calendarMonth.value.getMonth()
+
+  // Helper function to format date without timezone issues
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // First day of the month
+  const firstDay = new Date(year, month, 1)
+  // Last day of the month
+  const lastDay = new Date(year, month + 1, 0)
+
+  // Start from Sunday of the week containing the first day
+  const startDate = new Date(firstDay)
+  startDate.setDate(startDate.getDate() - firstDay.getDay())
+
+  // End on Saturday of the week containing the last day
+  const endDate = new Date(lastDay)
+  endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()))
+
+  const days = []
+  const currentDate = new Date(startDate)
+  const todayStr = formatDateLocal(new Date())
+  const minDate = new Date(today.value)
+
+  while (currentDate <= endDate) {
+    const dateStr = formatDateLocal(currentDate)
+    const isCurrentMonth = currentDate.getMonth() === month
+    const isDisabled = currentDate < minDate
+
+    days.push({
+      date: dateStr,
+      day: currentDate.getDate(),
+      inCurrentMonth: isCurrentMonth,
+      isToday: dateStr === todayStr,
+      disabled: isDisabled
+    })
+
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  return days
+})
+
+// Calendar methods
+const toggleCalendar = () => {
+  showCalendar.value = !showCalendar.value
+}
+
+const previousMonth = () => {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() - 1, 1)
+}
+
+const nextMonth = () => {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + 1, 1)
+}
+
+const selectDate = (date: string) => {
+  selectedDate.value = date
+  showCalendar.value = false
+}
+
+const selectToday = () => {
+  selectedDate.value = today.value
+  showCalendar.value = false
 }
 
 // Watchers
 watch(searchQuery, (newValue, oldValue) => {
   // Skip automatic search during initialization
   if (!isInitialized.value) return
-  
+
   // If field becomes empty, clear location immediately
   if (!newValue && oldValue) {
     clearLocation()
     return
   }
-  
+
   // Clear existing timer
   if (searchTimer) {
     clearTimeout(searchTimer)
   }
-  
+
   // Set new timer for 500ms delay
   searchTimer = setTimeout(() => {
     searchCenters()
   }, 500)
+})
+
+// Close calendar when clicking outside
+const handleClickOutside = (event: Event) => {
+  const calendarElement = event.target as Element
+  if (showCalendar.value && !calendarElement.closest('.relative')) {
+    showCalendar.value = false
+  }
+}
+
+watch(showCalendar, (newValue) => {
+  if (newValue) {
+    document.addEventListener('click', handleClickOutside)
+  } else {
+    document.removeEventListener('click', handleClickOutside)
+  }
 })
 
 
@@ -424,9 +546,10 @@ const loadMore = () => {
 
 // Initialize
 onMounted(() => {
+  calendarMonth.value = new Date()
   initialize(route.query)
   searchCenters()
-  
+
   // Enable automatic search after initialization
   isInitialized.value = true
 })
@@ -436,5 +559,6 @@ onUnmounted(() => {
   if (searchTimer) {
     clearTimeout(searchTimer)
   }
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>

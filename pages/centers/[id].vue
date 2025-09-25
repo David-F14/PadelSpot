@@ -430,6 +430,14 @@ const calendarDays = computed(() => {
   const year = calendarMonth.value.getFullYear()
   const month = calendarMonth.value.getMonth()
 
+  // Helper function to format date without timezone issues
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // First day of the month
   const firstDay = new Date(year, month, 1)
   // Last day of the month
@@ -445,11 +453,11 @@ const calendarDays = computed(() => {
 
   const days = []
   const currentDate = new Date(startDate)
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = formatDateLocal(new Date())
   const minDate = new Date(today.value)
 
   while (currentDate <= endDate) {
-    const dateStr = currentDate.toISOString().split('T')[0]
+    const dateStr = formatDateLocal(currentDate)
     const isCurrentMonth = currentDate.getMonth() === month
     const isDisabled = currentDate < minDate
 
