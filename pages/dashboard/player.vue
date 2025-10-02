@@ -76,7 +76,6 @@
             <option value="all">Toutes</option>
             <option value="upcoming">À venir</option>
             <option value="past">Passées</option>
-            <option value="month">Ce mois</option>
           </select>
         </div>
 
@@ -118,9 +117,14 @@
                     <h3 class="font-semibold text-lg">{{ booking.centers?.name }}</h3>
                     <p class="text-sm text-muted-foreground">{{ booking.courts?.name }}</p>
                   </div>
-                  <UiBadge :variant="getStatusVariant(booking.status)">
-                    {{ getStatusText(booking.status) }}
-                  </UiBadge>
+                  <div class="flex gap-2">
+                    <UiBadge :variant="getStatusVariant(booking.status)">
+                      {{ getStatusText(booking.status) }}
+                    </UiBadge>
+                    <UiBadge variant="secondary">
+                      {{ getPeriodText(booking.booking_date) }}
+                    </UiBadge>
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -203,7 +207,7 @@ const supabase = useSupabaseClient()
 const loading = ref(true)
 const bookings = ref<any[]>([])
 const filterStatus = ref('')
-const filterPeriod = ref('all')
+const filterPeriod = ref('upcoming')
 
 // Computed
 const filteredBookings = computed(() => {
@@ -301,6 +305,16 @@ const getStatusText = (status: string) => {
     case 'cancelled': return 'Annulée'
     default: return status
   }
+}
+
+const getPeriodVariant = (bookingDate: string) => {
+  const today = new Date().toISOString().split('T')[0]
+  return bookingDate >= today ? 'success' : 'secondary'
+}
+
+const getPeriodText = (bookingDate: string) => {
+  const today = new Date().toISOString().split('T')[0]
+  return bookingDate >= today ? 'À venir' : 'Passé'
 }
 
 const canCancel = (booking: any) => {

@@ -1,31 +1,5 @@
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b border-border">
-      <div class="container mx-auto px-4 py-4">
-        <nav class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <UiButton variant="ghost" size="sm" @click="goBack">
-              <ArrowLeft class="mr-2 h-4 w-4" />
-              Retour
-            </UiButton>
-            
-            <NuxtLink to="/" class="flex items-center space-x-2">
-              <div class="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-                <span class="text-primary-foreground font-bold text-lg">P</span>
-              </div>
-              <h1 class="text-xl font-bold text-foreground">PadelSpot</h1>
-            </NuxtLink>
-          </div>
-          
-          <div class="flex items-center space-x-4">
-            <div v-if="user" class="text-sm text-muted-foreground">
-              Connecté en tant que {{ user.email }}
-            </div>
-          </div>
-        </nav>
-      </div>
-    </header>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
