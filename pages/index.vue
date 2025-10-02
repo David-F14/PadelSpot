@@ -11,9 +11,9 @@
           
           <!-- Search Form -->
           <div class="bg-card rounded-lg p-6 shadow-sm">
-            <div class="grid md:grid-cols-4 gap-4">
+            <div class="flex flex-col md:flex-row gap-4">
               <!-- Location Search -->
-              <div class="md:col-span-3">
+              <div class="w-full md:w-[70%]">
                 <label class="block text-sm font-medium text-foreground mb-2">
                   Où ?
                 </label>
@@ -49,7 +49,7 @@
               </div>
 
               <!-- Date -->
-              <div>
+              <div class="w-full md:w-[30%]">
                 <label class="block text-sm font-medium text-foreground mb-2">
                   Date
                 </label>
